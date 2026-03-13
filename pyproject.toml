@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "book-store-api"
+version = "0.0.0"
+requires-python = ">=3.12.12"
+authors = [
+    { name = "Vladyslav Opanasenko", email = "vopanas42@gmail.com" }
+]
+license = { text = "MIT" }
+dependencies = [
+    "fastapi>=0.135.1",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]
