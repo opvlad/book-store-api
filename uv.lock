@@ -90,7 +90,7 @@ wheels = [
 [[package]]
 name = "book-store-api"
 version = "0.0.0"
-source = { editable = "." }
+source = { virtual = "." }
 dependencies = [
     { name = "alembic" },
     { name = "asyncpg" },
