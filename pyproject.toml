@@ -11,10 +11,17 @@ authors = [
 ]
 license = { text = "MIT" }
 dependencies = [
+    "alembic>=1.18.4",
+    "asyncpg>=0.31.0",
     "fastapi>=0.135.1",
+    "pydantic-settings>=2.13.1",
+    "sqlalchemy[asyncio]>=2.0.48",
 ]
 
 [dependency-groups]
 dev = [
     "pytest>=9.0.2",
 ]
+
+[tool.setuptools]
+packages = ["app"]
