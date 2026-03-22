@@ -1,7 +1,6 @@
-from datetime import datetime
 from typing import List
-
-from pydantic import BaseModel, EmailStr
+from datetime import datetime
+from pydantic import BaseModel, EmailStr, ConfigDict
 
 from app.models import UserRole
 
@@ -22,6 +21,23 @@ class UserListResponse(BaseModel):
 
 
 class UserCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     username: str
     email: EmailStr
     password: str
+
+
+class UserCreateInDB(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    username: str
+    email: EmailStr
+    password_hash: str
+
+
+class UserUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    username: str | None = None
+    email: EmailStr | None = None

@@ -16,7 +16,7 @@ from app.security import get_password_hash
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 engine = create_async_engine(TEST_DATABASE_URL, echo=False)
-test_async_session = async_sessionmaker(engine)
+test_async_session = async_sessionmaker(engine, expire_on_commit=False)
 
 
 @pytest.fixture()
@@ -49,8 +49,21 @@ async def client(db_session) -> AsyncGenerator[AsyncClient, None]:
 @pytest.fixture()
 async def test_user(db_session) -> User:
     test_user = User(
-        username="test_name",
+        username="test_username",
         email="test@test.com",
+        password_hash=get_password_hash("secret"),
+        role=UserRole.USER,
+    )
+    db_session.add(test_user)
+    await db_session.commit()
+    await db_session.refresh(test_user)
+    return test_user
+
+@pytest.fixture()
+async def test_other_user(db_session) -> User:
+    test_user = User(
+        username="other_username",
+        email="other@test.com",
         password_hash=get_password_hash("secret"),
         role=UserRole.USER,
     )
