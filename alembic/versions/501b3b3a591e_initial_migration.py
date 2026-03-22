@@ -25,7 +25,12 @@ def upgrade() -> None:
         sa.Column("name", sa.String(length=255), nullable=False),
         sa.Column("bio", sa.Text(), nullable=True),
         sa.Column("birth_date", sa.Date(), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.func.now(),
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
 
@@ -41,7 +46,12 @@ def upgrade() -> None:
             server_default="user",
             nullable=False,
         ),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.func.now(),
+        ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("email"),
         sa.UniqueConstraint("username"),
@@ -55,7 +65,12 @@ def upgrade() -> None:
         sa.Column("price", sa.Numeric(precision=10, scale=2), nullable=False),
         sa.Column("stock_quantity", sa.Integer(), server_default="0", nullable=False),
         sa.Column("author_id", sa.Integer(), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.func.now(),
+        ),
         sa.ForeignKeyConstraint(
             ["author_id"],
             ["authors.id"],
@@ -86,7 +101,12 @@ def upgrade() -> None:
         sa.Column("quantity", sa.Integer(), nullable=False),
         sa.Column("total_amount", sa.Numeric(precision=10, scale=2), nullable=False),
         sa.Column("note", sa.Text(), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.func.now(),
+        ),
         sa.ForeignKeyConstraint(
             ["book_id"],
             ["books.id"],
