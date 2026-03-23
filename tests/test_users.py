@@ -20,6 +20,15 @@ async def test_user_details_not_found(client: AsyncClient):
     assert response.json() == {"detail": "User not found"}
 
 
+async def test_list_users_is_empty(client: AsyncClient):
+    response = await client.get("/api/v1/users")
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["total"] == 0
+    assert len(data["items"]) == 0
+
+
 async def test_list_users(test_user, client: AsyncClient):
     response = await client.get("api/v1/users")
     assert response.status_code == 200
@@ -36,17 +45,8 @@ async def test_list_users_pagination(client: AsyncClient):
     assert response.status_code == 200
 
     data = response.json()
-    assert data["limit"] == 50
     assert data["offset"] == 2
-
-
-async def test_list_users_is_empty(client: AsyncClient):
-    response = await client.get("/api/v1/users")
-    assert response.status_code == 200
-
-    data = response.json()
-    assert data["total"] == 0
-    assert len(data["items"]) == 0
+    assert data["limit"] == 50
 
 
 async def test_create_user(client: AsyncClient):
@@ -100,7 +100,9 @@ async def test_update_user_not_found(test_user, client: AsyncClient):
     assert response.json() == {"detail": "User not found"}
 
 
-async def test_update_user_duplicated_username(test_user, test_other_user, client: AsyncClient):
+async def test_update_user_duplicated_username(
+    test_user, test_other_user, client: AsyncClient
+):
     response = await client.patch(
         f"/api/v1/users/{test_user.id}", json={"username": test_other_user.username}
     )
@@ -108,7 +110,9 @@ async def test_update_user_duplicated_username(test_user, test_other_user, clien
     assert response.json()["detail"] == "Username already exists"
 
 
-async def test_update_user_duplicated_email(test_user, test_other_user, client: AsyncClient):
+async def test_update_user_duplicated_email(
+    test_user, test_other_user, client: AsyncClient
+):
     response = await client.patch(
         f"/api/v1/users/{test_user.id}", json={"email": test_other_user.email}
     )

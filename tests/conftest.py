@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     AsyncSession,
 )
+from cashews import cache
 
 from app.main import app
 from app.database import Base, get_db
@@ -46,6 +47,17 @@ async def client(db_session) -> AsyncGenerator[AsyncClient, None]:
     app.dependency_overrides.clear()
 
 
+@pytest.fixture(scope="session")
+async def setup_cache():
+    cache.set_config("mem://")
+
+
+@pytest.fixture(autouse=True)
+async def clear_cache():
+    yield
+    await cache.clear()
+
+
 @pytest.fixture()
 async def test_user(db_session) -> User:
     test_user = User(
@@ -58,6 +70,7 @@ async def test_user(db_session) -> User:
     await db_session.commit()
     await db_session.refresh(test_user)
     return test_user
+
 
 @pytest.fixture()
 async def test_other_user(db_session) -> User:
