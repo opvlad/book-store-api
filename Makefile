@@ -5,6 +5,9 @@ BIN := $(VENV)/bin
 runserver:
 	@$(BIN)/uvicorn app.main:app --host localhost --port 8000
 
+devrunserver:
+	@$(BIN)/uvicorn app.main:app --host localhost --port 8000 --reload
+
 test:
 	@$(BIN)/pytest -v
 

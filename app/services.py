@@ -1,12 +1,10 @@
-from pygments.lexers.templates import VelocityLexer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import crud
 from app.models import User
-from app.schemas import UserCreate, UserCreateInDB, UserUpdate
-from app.security import get_password_hash
-from app.exeptions import UserNotFoundError, DuplicateFieldError
-
+from app.schemas import UserCreate, UserCreateInDB, UserUpdate, LoginForm, Token
+from app.security import get_password_hash, verify_password, create_access_token
+from app.exeptions import UserNotFoundError, DuplicateFieldError, UnauthorizedError
 
 
 async def get_user_details(user_id: int, db: AsyncSession) -> User | None:
@@ -22,15 +20,16 @@ async def get_users(
     return result
 
 
-async def create_user(db: AsyncSession, user: UserCreate) -> User:
+async def register_user(db: AsyncSession, user: UserCreate) -> User:
     if await crud.get_user_by_username(db, user.username):
-        raise ValueError("Username already exists")
+        raise DuplicateFieldError("Username already exists")
+
     if await crud.get_user_by_email(db, user.email):
-        raise ValueError("Email already exists")
+        raise DuplicateFieldError("Email already exists")
 
     user_in_db = UserCreateInDB(
         **user.model_dump(exclude={"password"}),
-        password_hash = get_password_hash(user.password),
+        password_hash=get_password_hash(user.password),
     )
 
     result = await crud.create_user(db, user_in_db)
@@ -61,3 +60,16 @@ async def delete_user(db: AsyncSession, user_id: int) -> None:
         raise UserNotFoundError()
 
     await crud.delete_user(db, user_id)
+
+
+async def login_user(db: AsyncSession, credentials: LoginForm) -> Token:
+    db_user = await crud.get_user_by_username(db, credentials.username)
+
+    if not db_user:
+        raise UserNotFoundError()
+
+    if not verify_password(credentials.password, db_user.password_hash):
+        raise UnauthorizedError()
+
+    access_token = create_access_token({"id": db_user.id})
+    return Token(access_token=access_token, refresh_token="None")

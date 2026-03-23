@@ -3,11 +3,21 @@ from cashews import cache
 
 from app import services
 from app.dependencies import sessionDep
-from app.schemas import UserResponse, UserListResponse, UserCreate, UserUpdate
+from app.schemas import UserResponse, UserListResponse, UserUpdate
 from app.exeptions import UserNotFoundError, DuplicateFieldError
 
 
 router = APIRouter()
+
+
+@router.get("/me", response_model=UserResponse)
+async def read_me(db: sessionDep):
+    pass
+
+
+@router.post("/me/update", response_model=UserResponse)
+async def update_me(db: sessionDep):
+    pass
 
 
 @router.get("", response_model=UserListResponse)
@@ -23,17 +33,6 @@ async def get_user_details(db: sessionDep, user_id: int):
     if not result:
         raise HTTPException(status_code=404, detail="User not found")
     return result
-
-
-@router.post("", response_model=UserResponse)
-async def register_user(db: sessionDep, user: UserCreate):
-    try:
-        result = await services.create_user(db, user)
-        await cache.delete_tags("list_users")
-        return result
-    except ValueError as e:
-        print(user.model_dump())
-        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.patch("/{user_id}", response_model=UserResponse)

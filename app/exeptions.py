@@ -4,3 +4,7 @@ class UserNotFoundError(Exception):
 
 class DuplicateFieldError(Exception):
     pass
+
+
+class UnauthorizedError(Exception):
+    pass

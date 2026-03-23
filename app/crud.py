@@ -1,4 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
+from pydantic import EmailStr
 
 from app.models import User
 from app.schemas import UserCreateInDB, UserUpdate
@@ -15,7 +16,7 @@ async def get_user_by_username(db: AsyncSession, username: str) -> User | None:
     return result.scalar_one_or_none()
 
 
-async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
+async def get_user_by_email(db: AsyncSession, email: str | EmailStr) -> User | None:
     result = await db.execute(select(User).where(User.email == email))
     return result.scalar_one_or_none()
 
@@ -51,4 +52,3 @@ async def delete_user(db: AsyncSession, user_id: int) -> None:
     db_user = await get_user_by_id(db, user_id)
     await db.delete(db_user)
     await db.flush()
-

@@ -3,7 +3,7 @@ from httpx import AsyncClient
 from app.models import UserRole
 
 
-async def test_user_details(test_user, client: AsyncClient):
+async def test_user_details_success(test_user, client: AsyncClient):
     response = await client.get(f"/api/v1/users/{test_user.id}")
     assert response.status_code == 200
 
@@ -29,7 +29,7 @@ async def test_list_users_is_empty(client: AsyncClient):
     assert len(data["items"]) == 0
 
 
-async def test_list_users(test_user, client: AsyncClient):
+async def test_list_users_success(test_user, client: AsyncClient):
     response = await client.get("api/v1/users")
     assert response.status_code == 200
 
@@ -49,40 +49,7 @@ async def test_list_users_pagination(client: AsyncClient):
     assert data["limit"] == 50
 
 
-async def test_create_user(client: AsyncClient):
-    user = {"username": "test", "email": "example@test.com", "password": "secret"}
-    response = await client.post("/api/v1/users", json=user)
-    assert response.status_code == 200
-
-    data = response.json()
-    assert data["username"] == user["username"]
-    assert data["email"] == user["email"]
-    assert data["role"] == UserRole.USER
-
-
-async def test_create_user_duplicated_username(test_user, client: AsyncClient):
-    response = await client.post(
-        "/api/v1/users",
-        json={
-            "username": "test_username",
-            "email": "example@test.com",
-            "password": "secret",
-        },
-    )
-    assert response.status_code == 400
-    assert response.json()["detail"] == "Username already exists"
-
-
-async def test_create_user_duplicated_email(test_user, client: AsyncClient):
-    response = await client.post(
-        "/api/v1/users",
-        json={"username": "test", "email": "test@test.com", "password": "secret"},
-    )
-    assert response.status_code == 400
-    assert response.json()["detail"] == "Email already exists"
-
-
-async def test_update_user(test_user, client: AsyncClient):
+async def test_update_user_success(test_user, client: AsyncClient):
     user = {"username": "new_username"}
     response = await client.patch(f"/api/v1/users/{test_user.id}", json=user)
     assert response.status_code == 200
@@ -120,7 +87,7 @@ async def test_update_user_duplicated_email(
     assert response.json()["detail"] == "Email already exists"
 
 
-async def test_delete_user(test_user, client: AsyncClient):
+async def test_delete_user_success(test_user, client: AsyncClient):
     response = await client.delete(f"/api/v1/users/{test_user.id}")
     assert response.status_code == 204
 
