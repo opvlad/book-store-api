@@ -14,7 +14,6 @@ router = APIRouter()
 @cache(ttl="60s", key="list_users:{offset}:{limit}", tags=["list_users"])
 async def list_users(db: sessionDep, offset: int = 0, limit: int = 100):
     result = await services.get_users(db, offset, limit)
-    print("@@@@")
     return result
 
 

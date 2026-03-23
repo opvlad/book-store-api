@@ -1,4 +1,10 @@
+from datetime import timedelta, datetime, UTC
+
 import bcrypt
+import jwt
+import pyjwt
+
+from app.config import settings
 
 
 def get_password_hash(password: str) -> str:
@@ -12,3 +18,12 @@ def verify_password(plain_password: str, password_hash: str) -> bool:
     plain_password_bytes = plain_password.encode("utf-8")
     password_hash_bytes = password_hash.encode("utf-8")
     return bcrypt.checkpw(plain_password_bytes, password_hash_bytes)
+
+
+def create_access_token(data: dict):
+    to_encode = data.copy()
+    expire = datetime.now(UTC) + timedelta(minutes=settings.access_token_expire_minutes)
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, settings.SECRET_KEY, settings.algorithm)
+
+print(create_access_token({"id": "2"}))
