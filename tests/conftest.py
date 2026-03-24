@@ -12,7 +12,7 @@ from cashews import cache
 from app.main import app
 from app.database import Base, get_db
 from app.models import User, UserRole
-from app.security import get_password_hash
+from app.security import get_password_hash, create_access_token
 
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
@@ -84,3 +84,40 @@ async def test_other_user(db_session) -> User:
     await db_session.commit()
     await db_session.refresh(test_user)
     return test_user
+
+
+@pytest.fixture()
+async def test_admin(db_session) -> User:
+    test_admin = User(
+        username="test_admin_username",
+        email="admin@test.com",
+        password_hash=get_password_hash("secret"),
+        role=UserRole.ADMIN,
+    )
+    db_session.add(test_admin)
+    await db_session.commit()
+    await db_session.refresh(test_admin)
+    return test_admin
+
+
+@pytest.fixture()
+async def admin_token(db_session, test_admin) -> str:
+    return create_access_token(data={"id": test_admin.id})
+
+
+@pytest.fixture()
+async def get_update_context(test_user, admin_token):
+    def _payload(update_type) -> dict:
+        if update_type == "user_action":
+            token = create_access_token(data={"id": test_user.id})
+            return {
+                "url": "api/v1/users/me/update",
+                "headers": {"Authorization": f"Bearer {token}"},
+            }
+
+        return {
+            "url": f"api/v1/users/{test_user.id}",
+            "headers": {"Authorization": f"Bearer {admin_token}"},
+        }
+
+    return _payload

@@ -7,7 +7,7 @@ from app.security import get_password_hash, verify_password, create_access_token
 from app.exeptions import UserNotFoundError, DuplicateFieldError, UnauthorizedError
 
 
-async def get_user_details(user_id: int, db: AsyncSession) -> User | None:
+async def get_user(db: AsyncSession, user_id: int) -> User | None:
     result = await crud.get_user_by_id(db, user_id)
     return result
 
@@ -72,4 +72,4 @@ async def login_user(db: AsyncSession, credentials: LoginForm) -> Token:
         raise UnauthorizedError()
 
     access_token = create_access_token({"id": db_user.id})
-    return Token(access_token=access_token, refresh_token="None")
+    return Token(access_token=access_token)

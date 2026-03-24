@@ -26,6 +26,9 @@ def create_access_token(data: dict) -> str:
     return jwt.encode(to_encode, settings.secret_key, settings.algorithm)
 
 
-def decode_token(token: str) -> dict:
-    decoded = jwt.decode(token, settings.secret_key, settings.algorithm)
-    return decoded
+def decode_token(token: str) -> dict | None:
+    try:
+        decoded = jwt.decode(token, settings.secret_key, settings.algorithm)
+        return decoded
+    except jwt.InvalidTokenError:
+        return None
