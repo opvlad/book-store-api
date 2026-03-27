@@ -2,7 +2,7 @@ from enum import StrEnum
 from decimal import Decimal
 from datetime import date, datetime, UTC
 
-from sqlalchemy import String, Text, Identity, ForeignKey, Numeric, DateTime
+from sqlalchemy import String, Text, Identity, ForeignKey, Numeric, DateTime, func, Enum
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 
 from app.database import Base
@@ -29,7 +29,9 @@ class Author(Base):
     bio: Mapped[str | None] = mapped_column(Text)
     birth_date: Mapped[date]
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
+        server_default=func.now(),
     )
 
     books: Mapped[list["Book"]] = relationship(back_populates="author", lazy="selectin")
@@ -45,7 +47,9 @@ class Book(Base):
     stock_quantity: Mapped[int] = mapped_column(default=0, server_default="0")
     author_id: Mapped[int] = mapped_column(ForeignKey("authors.id"), index=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
+        server_default=func.now(),
     )
 
     author: Mapped["Author"] = relationship(back_populates="books", lazy="joined")
@@ -58,9 +62,18 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(100), unique=True)
     email: Mapped[str] = mapped_column(String(255), unique=True)
     password_hash: Mapped[str] = mapped_column(String(255))
-    role: Mapped[UserRole] = mapped_column(default=UserRole.USER, server_default="user")
+    role: Mapped[UserRole] = mapped_column(
+        Enum(
+            UserRole,
+            values_callable=lambda elements: [element.value for element in elements],
+        ),
+        default=UserRole.USER,
+        server_default="user",
+    )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
+        server_default=func.now(),
     )
 
     orders: Mapped[list["Order"]] = relationship(back_populates="user", lazy="selectin")
@@ -73,13 +86,20 @@ class Order(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     book_id: Mapped[int] = mapped_column(ForeignKey("books.id"))
     status: Mapped[OrderStatus] = mapped_column(
-        default=OrderStatus.PENDING, server_default="pending"
+        Enum(
+            OrderStatus,
+            values_callable=lambda elements: [element.value for element in elements],
+        ),
+        default=OrderStatus.PENDING,
+        server_default="pending",
     )
     quantity: Mapped[int]
     total_amount: Mapped[Decimal] = mapped_column(Numeric(precision=10, scale=2))
     note: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
+        server_default=func.now(),
     )
 
     user: Mapped["User"] = relationship(back_populates="orders", lazy="joined")
