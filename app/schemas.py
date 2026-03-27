@@ -25,7 +25,7 @@ class UserResponse(BaseModel):
     created_at: datetime
 
 
-class UserListResponse(BaseModel):
+class UserListPaginatedResponse(BaseModel):
     total: int
     limit: int
     offset: int

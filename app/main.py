@@ -1,11 +1,8 @@
 from fastapi import FastAPI
-from cashews import cache
 
 from app.routers.v1.users import router as users_router
 from app.routers.v1.auth import router as auth_router
 
-
-cache.setup("mem://")
 
 app = FastAPI()
 

@@ -1,10 +1,9 @@
 from fastapi import APIRouter, HTTPException, Depends
-from cashews import cache
 
 from app.dependencies import sessionDep, get_current_user, get_current_admin
-from app.schemas import UserResponse, UserListResponse, UserUpdate
+from app.schemas import UserResponse, UserListPaginatedResponse, UserUpdate
 from app.models import User
-from app.exeptions import UserNotFoundError, DuplicateFieldError
+from app.exceptions import UserNotFoundError, DuplicateFieldError
 from app.services import (
     get_user as service_get_user,
     get_users as service_get_users,
@@ -26,33 +25,30 @@ async def update_profile(
     db: sessionDep, user_update: UserUpdate, user: User = Depends(get_current_user)
 ):
     try:
-        result = await service_update_user(db, user.id, user_update)
-        await cache.delete_tags("list_users")
-        return result
+        return await service_update_user(db, user.id, user_update)
     except DuplicateFieldError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("", response_model=UserListResponse)
-@cache(ttl="60s", key="list_users:{offset}:{limit}", tags=["list_users"])
+@router.get("", response_model=UserListPaginatedResponse)
 async def list_users(
     db: sessionDep,
     offset: int = 0,
     limit: int = 100,
     _: User = Depends(get_current_admin),
 ):
-    result = await service_get_users(db, offset, limit)
-    return result
+    total, items = await service_get_users(db, offset, limit)
+    return {"total": total, "limit": limit, "offset": offset, "items": items}
 
 
 @router.get("/{user_id}", response_model=UserResponse)
 async def read_user_details(
     db: sessionDep, user_id: int, _: User = Depends(get_current_admin)
 ):
-    result = await service_get_user(db, user_id)
-    if not result:
+    user = await service_get_user(db, user_id)
+    if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    return result
+    return user
 
 
 @router.patch("/{user_id}", response_model=UserResponse)
@@ -63,9 +59,7 @@ async def modify_user(
     _: User = Depends(get_current_admin),
 ):
     try:
-        result = await service_update_user(db, user_id, user_update)
-        await cache.delete_tags("list_users")
-        return result
+        return await service_update_user(db, user_id, user_update)
     except UserNotFoundError:
         raise HTTPException(status_code=404, detail="User not found")
     except DuplicateFieldError as e:
@@ -78,6 +72,5 @@ async def remove_user(
 ):
     try:
         await service_delete_user(db, user_id)
-        await cache.delete_tags("list_users")
     except UserNotFoundError:
         raise HTTPException(status_code=404, detail="User not found")

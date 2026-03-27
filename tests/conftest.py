@@ -107,16 +107,16 @@ async def admin_token(db_session, test_admin) -> str:
 
 @pytest.fixture()
 async def get_update_context(test_user, admin_token):
-    def _payload(update_type) -> dict:
-        if update_type == "user_action":
+    def _payload(action_type) -> dict:
+        if action_type == "user_action":
             token = create_access_token(data={"id": test_user.id})
             return {
-                "url": "api/v1/users/me/update",
+                "url": "/api/v1/users/me/update",
                 "headers": {"Authorization": f"Bearer {token}"},
             }
 
         return {
-            "url": f"api/v1/users/{test_user.id}",
+            "url": f"/api/v1/users/{test_user.id}",
             "headers": {"Authorization": f"Bearer {admin_token}"},
         }
 

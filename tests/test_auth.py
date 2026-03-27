@@ -10,7 +10,7 @@ async def test_login_success(client: AsyncClient, test_user):
     assert response.status_code == 200
 
 
-async def test_login_user_not_exist(client: AsyncClient):
+async def test_login_not_existed_user(client: AsyncClient):
     response = await client.post(
         "/api/v1/auth/login", json={"username": "not_exist", "password": "secret"}
     )
@@ -27,7 +27,7 @@ async def test_login_wrong_password(client: AsyncClient, test_user):
     assert response.json()["detail"] == "Incorrect username or password"
 
 
-async def test_register_user_success(client: AsyncClient):
+async def test_register_success(client: AsyncClient):
     user = {"username": "test", "email": "example@test.com", "password": "secret"}
     response = await client.post("/api/v1/auth/register", json=user)
     assert response.status_code == 200
@@ -38,7 +38,7 @@ async def test_register_user_success(client: AsyncClient):
     assert data["role"] == UserRole.USER
 
 
-async def test_register_user_duplicated_username(test_user, client: AsyncClient):
+async def test_register_duplicated_username(test_user, client: AsyncClient):
     response = await client.post(
         "/api/v1/auth/register",
         json={
@@ -51,7 +51,7 @@ async def test_register_user_duplicated_username(test_user, client: AsyncClient)
     assert response.json()["detail"] == "Username already exists"
 
 
-async def test_register_user_duplicated_email(test_user, client: AsyncClient):
+async def test_register_duplicated_email(test_user, client: AsyncClient):
     response = await client.post(
         "/api/v1/auth/register",
         json={"username": "test", "email": "test@test.com", "password": "secret"},

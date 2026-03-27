@@ -21,7 +21,7 @@ async def get_user_by_email(db: AsyncSession, email: str | EmailStr) -> User | N
     return result.scalar_one_or_none()
 
 
-async def get_users(db: AsyncSession, offset: int = 0, limit: int = 100) -> list[User]:
+async def get_users(db: AsyncSession, offset: int, limit: int) -> list[User]:
     result = await db.execute(
         select(User).offset(offset).limit(limit).order_by(User.id)
     )

@@ -8,7 +8,7 @@ from app.security import create_access_token
 async def test_user_read_me(client: AsyncClient, test_user):
     token = create_access_token(data={"id": test_user.id})
     response = await client.get(
-        "api/v1/users/me", headers={"Authorization": f"Bearer {token}"}
+        "/api/v1/users/me", headers={"Authorization": f"Bearer {token}"}
     )
     assert response.status_code == 200
 
@@ -22,7 +22,7 @@ async def test_user_read_me(client: AsyncClient, test_user):
 
 async def test_user_read_me_invalid_token(client: AsyncClient):
     response = await client.get(
-        "api/v1/users/me", headers={"Authorization": "Bearer invalid-token"}
+        "/api/v1/users/me", headers={"Authorization": "Bearer invalid-token"}
     )
     assert response.status_code == 401
     assert response.json() == {"detail": "Invalid token"}
@@ -31,7 +31,7 @@ async def test_user_read_me_invalid_token(client: AsyncClient):
 async def test_user_read_me_invalid_token_payload(client: AsyncClient):
     invalid_token = create_access_token(data={})
     response = await client.get(
-        "api/v1/users/me", headers={"Authorization": f"Bearer {invalid_token}"}
+        "/api/v1/users/me", headers={"Authorization": f"Bearer {invalid_token}"}
     )
     assert response.status_code == 401
     assert response.json() == {"detail": "Invalid token payload"}
@@ -40,13 +40,13 @@ async def test_user_read_me_invalid_token_payload(client: AsyncClient):
 async def test_user_read_me_not_found(client: AsyncClient):
     token = create_access_token(data={"id": 999})
     response = await client.get(
-        "api/v1/users/me", headers={"Authorization": f"Bearer {token}"}
+        "/api/v1/users/me", headers={"Authorization": f"Bearer {token}"}
     )
     assert response.status_code == 401
     assert response.json() == {"detail": "User not found"}
 
 
-async def test_user_details_success(test_user, client: AsyncClient, admin_token):
+async def test_user_details_success(test_user, admin_token, client: AsyncClient):
     response = await client.get(
         f"/api/v1/users/{test_user.id}",
         headers={"Authorization": f"Bearer {admin_token}"},
@@ -66,7 +66,6 @@ async def test_user_details_not_found(client: AsyncClient, admin_token):
         "/api/v1/users/999",
         headers={"Authorization": f"Bearer {admin_token}"},
     )
-    print(response.status_code)
     assert response.status_code == 404
     assert response.json() == {"detail": "User not found"}
 
@@ -95,7 +94,7 @@ async def test_list_users_contains_only_admin(client: AsyncClient, admin_token):
 
 async def test_list_users_success(test_user, client: AsyncClient, admin_token):
     response = await client.get(
-        "api/v1/users",
+        "/api/v1/users",
         headers={"Authorization": f"Bearer {admin_token}"},
     )
     assert response.status_code == 200
@@ -109,7 +108,7 @@ async def test_list_users_success(test_user, client: AsyncClient, admin_token):
 
 async def test_list_users_pagination(client: AsyncClient, admin_token):
     response = await client.get(
-        "api/v1/users?offset=2&limit=50",
+        "/api/v1/users?offset=2&limit=50",
         headers={"Authorization": f"Bearer {admin_token}"},
     )
     assert response.status_code == 200
@@ -119,12 +118,12 @@ async def test_list_users_pagination(client: AsyncClient, admin_token):
     assert data["limit"] == 50
 
 
-@mark.parametrize("update_type", ["admin_action", "user_action"])
+@mark.parametrize("action_type", ["admin_action", "user_action"])
 async def test_update_user_success(
-    client: AsyncClient, update_type, get_update_context
+    client: AsyncClient, action_type, get_update_context
 ):
     update_user = {"username": "new_username"}
-    context = get_update_context(update_type)
+    context = get_update_context(action_type)
 
     response = await client.patch(
         url=context["url"], headers=context["headers"], json=update_user
@@ -150,11 +149,11 @@ async def test_update_user_not_found(client: AsyncClient, admin_token):
     assert response.json() == {"detail": "User not found"}
 
 
-@mark.parametrize("update_type", ["admin_action", "user_action"])
+@mark.parametrize("action_type", ["admin_action", "user_action"])
 async def test_update_user_duplicated_username(
-    test_user, test_other_user, get_update_context, update_type, client: AsyncClient
+    test_user, test_other_user, get_update_context, action_type, client: AsyncClient
 ):
-    context = get_update_context(update_type)
+    context = get_update_context(action_type)
     response = await client.patch(
         url=context["url"],
         headers=context["headers"],
@@ -164,11 +163,11 @@ async def test_update_user_duplicated_username(
     assert response.json()["detail"] == "Username already exists"
 
 
-@mark.parametrize("update_type", ["admin_action", "user_action"])
+@mark.parametrize("action_type", ["admin_action", "user_action"])
 async def test_update_user_duplicated_email(
-    test_user, test_other_user, get_update_context, update_type, client: AsyncClient
+    test_user, test_other_user, get_update_context, action_type, client: AsyncClient
 ):
-    context = get_update_context(update_type)
+    context = get_update_context(action_type)
     response = await client.patch(
         url=context["url"],
         headers=context["headers"],
