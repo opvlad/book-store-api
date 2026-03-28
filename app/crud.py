@@ -1,9 +1,12 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import EmailStr
 
-from app.models import User
-from app.schemas import UserCreateInDB, UserUpdate
+from app.models import User, Author
+from app.schemas import UserCreateInDB, UserUpdate, AuthorCreate, AuthorUpdate
 from sqlalchemy import select
+
+
+# USERS
 
 
 async def get_user_by_id(db: AsyncSession, user_id: int) -> User | None:
@@ -51,4 +54,47 @@ async def update_user(db: AsyncSession, user_id: int, user: UserUpdate) -> User:
 async def delete_user(db: AsyncSession, user_id: int) -> None:
     db_user = await get_user_by_id(db, user_id)
     await db.delete(db_user)
+    await db.flush()
+
+
+# AUTHORS
+
+
+async def get_author_by_id(db: AsyncSession, author_id: int) -> Author | None:
+    result = await db.execute(select(Author).where(Author.id == author_id))
+    return result.scalar_one_or_none()
+
+
+async def get_authors(db: AsyncSession, offset: int, limit: int) -> list[Author] | None:
+    result = await db.execute(
+        select(Author).offset(offset).limit(limit).order_by(Author.id)
+    )
+    return list(result.scalars().all())
+
+
+async def create_author(db: AsyncSession, author: AuthorCreate) -> Author:
+    db_author = Author(**author.model_dump())
+    db.add(db_author)
+    await db.flush()
+    await db.refresh(db_author)
+    return db_author
+
+
+async def update_author(
+    db: AsyncSession, author_id: int, author_update: AuthorUpdate
+) -> Author:
+    db_author = await get_author_by_id(db, author_id)
+
+    update_data = author_update.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_author, key, value)
+
+    await db.flush()
+    await db.refresh(db_author)
+    return db_author
+
+
+async def delete_author(db: AsyncSession, author_id: int) -> None:
+    db_author = await get_author_by_id(db, author_id)
+    await db.delete(db_author)
     await db.flush()
