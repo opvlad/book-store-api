@@ -31,8 +31,7 @@ async def get_user(db: AsyncSession, user_id: int) -> User | None:
 async def get_users(
     db: AsyncSession, offset: int, limit: int
 ) -> tuple[int, list[User]]:
-    items = await crud.get_users(db, offset, limit)
-    return len(items), items
+     return await crud.get_users(db, offset, limit)
 
 
 async def register_user(db: AsyncSession, user: UserCreate) -> User:

@@ -10,8 +10,7 @@ from sqlalchemy import select, func
 
 
 async def get_user_by_id(db: AsyncSession, user_id: int) -> User | None:
-    result = await db.execute(select(User).where(User.id == user_id))
-    return result.scalar_one_or_none()
+    return await db.get(User, user_id)
 
 
 async def get_user_by_username(db: AsyncSession, username: str) -> User | None:
@@ -24,11 +23,12 @@ async def get_user_by_email(db: AsyncSession, email: str | EmailStr) -> User | N
     return result.scalar_one_or_none()
 
 
-async def get_users(db: AsyncSession, offset: int, limit: int) -> list[User]:
+async def get_users(db: AsyncSession, offset: int, limit: int) -> tuple[int, list[User]]:
     result = await db.execute(
         select(User).offset(offset).limit(limit).order_by(User.id)
     )
-    return list(result.scalars().all())
+    total = await db.scalar(select(func.count(User.id)))
+    return total, list(result.scalars().all())
 
 
 async def create_user(db: AsyncSession, user: UserCreateInDB) -> User:
