@@ -1,5 +1,5 @@
 from typing import List
-from datetime import datetime
+from datetime import datetime, date
 from pydantic import BaseModel, EmailStr, ConfigDict
 
 from app.models import UserRole
@@ -53,3 +53,19 @@ class UserUpdate(BaseModel):
 
     username: str | None = None
     email: EmailStr | None = None
+
+
+class AuthorCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str
+    bio: str | None = None
+    birth_date: datetime
+
+
+class AuthorUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str | None = None
+    bio: str | None = None
+    birth_date: date | None = None
