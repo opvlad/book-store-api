@@ -3,7 +3,7 @@ from pydantic import EmailStr
 
 from app.models import User, Author
 from app.schemas import UserCreateInDB, UserUpdate, AuthorCreate, AuthorUpdate
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 
 # USERS
@@ -61,15 +61,17 @@ async def delete_user(db: AsyncSession, user_id: int) -> None:
 
 
 async def get_author_by_id(db: AsyncSession, author_id: int) -> Author | None:
-    result = await db.execute(select(Author).where(Author.id == author_id))
-    return result.scalar_one_or_none()
+    return await db.get(Author, author_id)
 
 
-async def get_authors(db: AsyncSession, offset: int, limit: int) -> list[Author] | None:
+async def get_authors(
+    db: AsyncSession, offset: int, limit: int
+) -> tuple[int, list[Author]]:
     result = await db.execute(
-        select(Author).offset(offset).limit(limit).order_by(Author.id)
+        select(Author).order_by(Author.id).offset(offset).limit(limit)
     )
-    return list(result.scalars().all())
+    total = await db.scalar(select(func.count(Author.id)))
+    return total, list(result.scalars().all())
 
 
 async def create_author(db: AsyncSession, author: AuthorCreate) -> Author:

@@ -3,7 +3,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import crud
 from app.models import User, Author
-from app.schemas import UserCreate, UserCreateInDB, UserUpdate, LoginForm, AuthorCreate, AuthorUpdate
+from app.schemas import (
+    UserCreate,
+    UserCreateInDB,
+    UserUpdate,
+    LoginForm,
+    AuthorCreate,
+    AuthorUpdate,
+)
 from app.security import get_password_hash, verify_password, create_access_token
 from app.exceptions import (
     UserNotFoundError,
@@ -83,18 +90,14 @@ async def login_user(db: AsyncSession, credentials: LoginForm) -> str:
 # AUTHORS
 
 
-async def is_adult(birth_date: date, adulthood_age: int = 18) -> bool:
+def is_adult(birth_date: date, adulthood_age: int = 18) -> bool:
     current_date = datetime.now().date()
     age = (
-            current_date.year
-            - birth_date.year
-            - (
-                    (current_date.month, current_date.day)
-                    < (birth_date.month, birth_date.day)
-            )
+        current_date.year
+        - birth_date.year
+        - ((current_date.month, current_date.day) < (birth_date.month, birth_date.day))
     )
     return age >= adulthood_age
-
 
 
 async def get_author(db: AsyncSession, author_id: int) -> Author:
@@ -107,8 +110,7 @@ async def get_author(db: AsyncSession, author_id: int) -> Author:
 async def get_authors(
     db: AsyncSession, offset: int, limit: int
 ) -> tuple[int, list[Author]]:
-    items = await crud.get_authors(db, offset, limit)
-    return len(items), items
+    return await crud.get_authors(db, offset, limit)
 
 
 async def create_author(db: AsyncSession, author: AuthorCreate) -> Author:
@@ -118,12 +120,14 @@ async def create_author(db: AsyncSession, author: AuthorCreate) -> Author:
     return await crud.create_author(db, author)
 
 
-async def update_author(db: AsyncSession, author_id: int, author: AuthorUpdate) -> Author:
+async def update_author(
+    db: AsyncSession, author_id: int, author: AuthorUpdate
+) -> Author:
     existing_author = await crud.get_author_by_id(db, author_id)
     if not existing_author:
         raise AuthorNotFoundError()
 
-    if not is_adult(author.birth_date):
+    if author.birth_date and not is_adult(author.birth_date):
         raise AuthorIsNotAdultError()
 
     return await crud.update_author(db, author_id, author)
