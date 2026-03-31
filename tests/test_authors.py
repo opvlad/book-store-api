@@ -53,7 +53,7 @@ async def test_create_author_success(client, admin_token):
         json=author,
         headers={"Authorization": f"Bearer {admin_token}"},
     )
-    assert response.status_code == 200
+    assert response.status_code == 201
 
     data = response.json()
     assert data["name"] == author["name"]
@@ -88,7 +88,7 @@ async def test_create_author_is_not_adult(client, admin_token):
         },
         headers={"Authorization": f"Bearer {admin_token}"},
     )
-    assert response.status_code == 422
+    assert response.status_code == 400
     assert response.json()["detail"] == "Author is not adult"
 
 
@@ -131,7 +131,7 @@ async def test_update_author_is_not_adult(client, test_author, admin_token):
         json={"birth_date": datetime.now().date().isoformat()},
         headers={"Authorization": f"Bearer {admin_token}"},
     )
-    assert response.status_code == 422
+    assert response.status_code == 400
     assert response.json()["detail"] == "Author is not adult"
 
 

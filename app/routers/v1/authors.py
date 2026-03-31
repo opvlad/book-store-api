@@ -31,7 +31,7 @@ async def read_author_details(db: sessionDep, author_id: int):
     return await service_get_author(db, author_id)
 
 
-@router.post("", response_model=AuthorResponse)
+@router.post("", response_model=AuthorResponse, status_code=201)
 async def create_author(
     db: sessionDep, author: AuthorCreate, _: User = Depends(get_current_admin)
 ):

@@ -9,4 +9,4 @@ async def author_not_found_handler(request: Request, exc: AuthorNotFoundError):
 
 
 async def author_is_not_adult(request: Request, exc: AuthorIsNotAdultError):
-    return JSONResponse(status_code=422, content={"detail": "Author is not adult"})
+    return JSONResponse(status_code=400, content={"detail": "Author is not adult"})
