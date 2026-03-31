@@ -15,6 +15,9 @@ class LoginForm(BaseModel):
     password: str
 
 
+# USERS
+
+
 class UserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -53,6 +56,25 @@ class UserUpdate(BaseModel):
 
     username: str | None = None
     email: EmailStr | None = None
+
+
+# AUTHORS
+
+
+class AuthorResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    bio: str | None = None
+    birth_date: date
+
+
+class AuthorListPaginatedResponse(BaseModel):
+    total: int
+    limit: int
+    offset: int
+    items: List[AuthorResponse]
 
 
 class AuthorCreate(BaseModel):
