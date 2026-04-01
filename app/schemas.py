@@ -1,6 +1,7 @@
 from typing import List
 from datetime import datetime, date
-from pydantic import BaseModel, EmailStr, ConfigDict
+from decimal import Decimal
+from pydantic import BaseModel, EmailStr, ConfigDict, Field
 
 from app.models import UserRole
 
@@ -91,3 +92,22 @@ class AuthorUpdate(BaseModel):
     name: str | None = None
     bio: str | None = None
     birth_date: date | None = None
+
+
+# BOOKS
+
+
+class BookCreate(BaseModel):
+    title: str = Field(..., min_length=1, max_length=255)
+    description: str | None = None
+    price: Decimal = Field(..., ge=0)
+    stock_quantity: int = Field(default=0, ge=0)
+    author_id: int
+
+
+class BookUpdate(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=255)
+    description: str | None = None
+    price: Decimal | None = Field(default=None, ge=0)
+    stock_quantity: int | None = Field(default=None, ge=0)
+    author_id: int | None = Field(default=None)

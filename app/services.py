@@ -2,7 +2,7 @@ from datetime import datetime, date
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import crud
-from app.models import User, Author
+from app.models import User, Author, Book
 from app.schemas import (
     UserCreate,
     UserCreateInDB,
@@ -10,6 +10,8 @@ from app.schemas import (
     LoginForm,
     AuthorCreate,
     AuthorUpdate,
+    BookCreate,
+    BookUpdate,
 )
 from app.security import get_password_hash, verify_password, create_access_token
 from app.exceptions import (
@@ -18,6 +20,7 @@ from app.exceptions import (
     UnauthorizedError,
     AuthorNotFoundError,
     AuthorIsNotAdultError,
+    BookNotFoundError,
 )
 
 
@@ -31,7 +34,7 @@ async def get_user(db: AsyncSession, user_id: int) -> User | None:
 async def get_users(
     db: AsyncSession, offset: int, limit: int
 ) -> tuple[int, list[User]]:
-     return await crud.get_users(db, offset, limit)
+    return await crud.get_users(db, offset, limit)
 
 
 async def register_user(db: AsyncSession, user: UserCreate) -> User:
@@ -138,3 +141,46 @@ async def delete_author(db: AsyncSession, author_id: int) -> None:
         raise AuthorNotFoundError()
 
     await crud.delete_author(db, author_id)
+
+
+# BOOKS
+
+
+async def get_book(db: AsyncSession, book_id: int) -> Book:
+    book = await crud.get_book_by_id(db, book_id)
+    if not book:
+        raise BookNotFoundError()
+    return book
+
+
+async def get_books(db: AsyncSession, limit: int, offset: int) -> tuple[int, list[Book]]:
+    return await crud.get_books(db, limit, offset)
+
+
+async def create_book(db: AsyncSession, book: BookCreate) -> Book:
+    existing_author = await crud.get_author_by_id(db, book.author_id)
+    if not existing_author:
+        raise AuthorNotFoundError()
+
+    return await crud.create_book(db, book)
+
+
+async def update_book(db: AsyncSession, book_id: int, book_update: BookUpdate) -> Book:
+    existing_book = await crud.get_book_by_id(db, book_id)
+    if not existing_book:
+        raise BookNotFoundError()
+
+    if book_update.author_id is not None:
+        existing_author = await crud.get_author_by_id(db, book_update.author_id)
+        if not existing_author:
+            raise AuthorNotFoundError()
+
+    return await crud.update_book(db, book_id, book_update)
+
+
+async def delete_book(db: AsyncSession, book_id: int) -> None:
+    existing_book = await crud.get_book_by_id(db, book_id)
+    if not existing_book:
+        raise BookNotFoundError()
+
+    await crud.delete_book(db, book_id)
