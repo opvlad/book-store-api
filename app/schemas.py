@@ -97,10 +97,28 @@ class AuthorUpdate(BaseModel):
 # BOOKS
 
 
+class BookResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    title: str
+    description: str | None = None
+    price: float
+    stock_quantity: int
+    author_id: int
+
+
+class BookListPaginatedResponse(BaseModel):
+    total: int
+    limit: int
+    offset: int
+    items: List[BookResponse]
+
+
 class BookCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=255)
     description: str | None = None
-    price: Decimal = Field(..., ge=0)
+    price: Decimal = Field(..., gt=0)
     stock_quantity: int = Field(default=0, ge=0)
     author_id: int
 
@@ -108,6 +126,6 @@ class BookCreate(BaseModel):
 class BookUpdate(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=255)
     description: str | None = None
-    price: Decimal | None = Field(default=None, ge=0)
+    price: Decimal | None = Field(default=None, gt=0)
     stock_quantity: int | None = Field(default=None, ge=0)
     author_id: int | None = Field(default=None)
