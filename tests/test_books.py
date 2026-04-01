@@ -201,9 +201,7 @@ async def test_update_book_unauthorized(client: AsyncClient, test_book):
 async def test_update_book_forbidden(client: AsyncClient, test_book, user_token):
     response = await client.patch(
         f"/api/v1/books/{test_book.id}",
-        json={
-            "title": "new title"
-        },
+        json={"title": "new title"},
         headers={"Authorization": f"Bearer {user_token}"},
     )
     assert response.status_code == 403
@@ -222,7 +220,9 @@ async def test_update_book_not_found(client: AsyncClient, test_book, admin_token
     assert response.json()["detail"] == "Book not found"
 
 
-async def test_update_book_not_existed_author(client: AsyncClient, test_book, admin_token):
+async def test_update_book_not_existed_author(
+    client: AsyncClient, test_book, admin_token
+):
     response = await client.patch(
         f"/api/v1/books/{test_book.id}",
         json={
