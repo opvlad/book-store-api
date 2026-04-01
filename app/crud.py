@@ -1,8 +1,16 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import EmailStr
 
-from app.models import User, Author
-from app.schemas import UserCreateInDB, UserUpdate, AuthorCreate, AuthorUpdate
+from app.models import User, Author, Book
+from app.schemas import (
+    UserCreateInDB,
+    UserUpdate,
+    AuthorCreate,
+    AuthorUpdate,
+    BookCreate,
+    BookUpdate,
+)
+
 from sqlalchemy import select, func
 
 
@@ -23,7 +31,9 @@ async def get_user_by_email(db: AsyncSession, email: str | EmailStr) -> User | N
     return result.scalar_one_or_none()
 
 
-async def get_users(db: AsyncSession, offset: int, limit: int) -> tuple[int, list[User]]:
+async def get_users(
+    db: AsyncSession, offset: int, limit: int
+) -> tuple[int, list[User]]:
     result = await db.execute(
         select(User).offset(offset).limit(limit).order_by(User.id)
     )
@@ -100,3 +110,43 @@ async def delete_author(db: AsyncSession, author_id: int) -> None:
     db_author = await get_author_by_id(db, author_id)
     await db.delete(db_author)
     await db.flush()
+
+
+# BOOKS
+
+
+async def get_book_by_id(db: AsyncSession, book_id: int) -> Book | None:
+    return await db.get(Book, book_id)
+
+
+async def get_books(
+    db: AsyncSession, limit: int, offset: int
+) -> tuple[int, list[Book]]:
+    items = await db.execute(select(Book).order_by(Book.id).limit(limit).offset(offset))
+    total = await db.scalar(select(func.count(Book.id)))
+    return total, list(items.scalars().all())
+
+
+async def create_book(db: AsyncSession, book: BookCreate) -> Book:
+    db_book = Book(**book.model_dump())
+    db.add(db_book)
+    await db.flush()
+    await db.refresh(db_book)
+    return db_book
+
+
+async def update_book(db: AsyncSession, book_id: int, book_update: BookUpdate) -> Book:
+    db_book = await get_book_by_id(db, book_id)
+
+    updated_data = book_update.model_dump(exclude_unset=True)
+    for key, value in updated_data.items():
+        setattr(db_book, key, value)
+
+    await db.flush(db_book)
+    await db.refresh(db_book)
+    return db_book
+
+
+async def delete_book(db: AsyncSession, book_id: int) -> None:
+    db_book = await get_book_by_id(db, book_id)
+    await db.delete(db_book)

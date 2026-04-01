@@ -18,3 +18,6 @@ class AuthorIsNotAdultError(Exception):
     pass
 
 
+class BookNotFoundError(Exception):
+    pass
+
