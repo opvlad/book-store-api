@@ -166,9 +166,14 @@ async def create_book(db: AsyncSession, book: BookCreate) -> Book:
 
 
 async def update_book(db: AsyncSession, book_id: int, book_update: BookUpdate) -> Book:
-    existing_author = await crud.get_author_by_id(db, book_update.author_id)
-    if not existing_author:
-        raise AuthorNotFoundError()
+    existing_book = await crud.get_book_by_id(db, book_id)
+    if not existing_book:
+        raise BookNotFoundError()
+
+    if book_update.author_id is not None:
+        existing_author = await crud.get_author_by_id(db, book_update.author_id)
+        if not existing_author:
+            raise AuthorNotFoundError()
 
     return await crud.update_book(db, book_id, book_update)
 
