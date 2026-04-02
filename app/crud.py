@@ -142,7 +142,7 @@ async def update_book(db: AsyncSession, book_id: int, book_update: BookUpdate) -
     for key, value in updated_data.items():
         setattr(db_book, key, value)
 
-    await db.flush(db_book)
+    await db.flush()
     await db.refresh(db_book)
     return db_book
 
@@ -150,3 +150,4 @@ async def update_book(db: AsyncSession, book_id: int, book_update: BookUpdate) -
 async def delete_book(db: AsyncSession, book_id: int) -> None:
     db_book = await get_book_by_id(db, book_id)
     await db.delete(db_book)
+    await db.flush()

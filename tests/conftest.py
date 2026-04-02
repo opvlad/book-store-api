@@ -9,10 +9,11 @@ from sqlalchemy.ext.asyncio import (
 )
 from cashews import cache
 from datetime import date
+from decimal import Decimal
 
 from app.main import app
 from app.database import Base, get_db
-from app.models import UserRole, User, Author
+from app.models import UserRole, User, Author, Book
 from app.security import get_password_hash, create_access_token
 
 
@@ -110,6 +111,21 @@ async def test_author(db_session) -> Author:
     await db_session.commit()
     await db_session.refresh(test_author)
     return test_author
+
+
+@pytest.fixture()
+async def test_book(db_session, test_author) -> Book:
+    test_book = Book(
+        title="Test Book",
+        description="Test description",
+        price=Decimal(100),
+        stock_quantity=10,
+        author_id=test_author.id,
+    )
+    db_session.add(test_book)
+    await db_session.commit()
+    await db_session.refresh(test_book)
+    return test_book
 
 
 @pytest.fixture()
