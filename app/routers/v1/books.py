@@ -43,5 +43,7 @@ async def modify_book(
 
 
 @router.delete("/{book_id}", status_code=204)
-async def delete_book(db: sessionDep, book_id: int):
+async def delete_book(
+    db: sessionDep, book_id: int, _: User = Depends(get_current_admin)
+):
     return await service_delete_book(db, book_id)

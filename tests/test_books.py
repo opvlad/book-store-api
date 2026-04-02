@@ -119,48 +119,20 @@ async def test_create_book_not_existed_author(client: AsyncClient, admin_token):
     assert response.json()["detail"] == "Author not found"
 
 
-@mark.parametrize("price", [-10.50, 0])
-async def test_create_book_error_invalid_price(
-    client: AsyncClient, test_author, admin_token, price
+@mark.parametrize(
+    ["field_name", "value"],
+    [("price", -10.50), ("price", 0), ("stock_quantity", -10), ("title", "")],
+)
+async def test_create_book_invalid_data(
+    client: AsyncClient, test_author, admin_token, field_name, value
 ):
     response = await client.post(
         "/api/v1/books",
         json={
             "title": "Test title",
-            "price": price,
+            "price": 10,
             "author_id": test_author.id,
-        },
-        headers={"Authorization": f"Bearer {admin_token}"},
-    )
-    assert response.status_code == 422
-
-
-async def test_create_book_error_negative_stock(
-    client: AsyncClient, test_author, admin_token
-):
-    response = await client.post(
-        "/api/v1/books",
-        json={
-            "title": "Test title",
-            "price": 100,
-            "stock_quantity": -1,
-            "author_id": test_author.id,
-        },
-        headers={"Authorization": f"Bearer {admin_token}"},
-    )
-    assert response.status_code == 422
-
-
-async def test_create_book_error_empty_title(
-    client: AsyncClient, test_author, admin_token
-):
-    response = await client.post(
-        "/api/v1/books",
-        json={
-            "title": "",
-            "price": 100,
-            "stock_quantity": 1,
-            "author_id": test_author.id,
+            field_name: value,
         },
         headers={"Authorization": f"Bearer {admin_token}"},
     )
@@ -260,7 +232,24 @@ async def test_delete_book_success(client: AsyncClient, test_book, admin_token):
     assert response.status_code == 404
 
 
-async def test_delete_book_bot_found(client: AsyncClient, admin_token):
+async def test_delete_book_unauthorized(client: AsyncClient, test_book):
+    response = await client.delete(
+        f"/api/v1/books/{test_book.id}",
+    )
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Not authenticated"
+
+
+async def test_delete_book_forbidden(client: AsyncClient, test_book, user_token):
+    response = await client.delete(
+        f"/api/v1/books/{test_book.id}",
+        headers={"Authorization": f"Bearer {user_token}"},
+    )
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Admin permission required"
+
+
+async def test_delete_book_not_found(client: AsyncClient, admin_token):
     response = await client.delete(
         "/api/v1/books/999",
         headers={"Authorization": f"Bearer {admin_token}"},
