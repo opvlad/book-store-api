@@ -1,7 +1,17 @@
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
-from app.exceptions import AuthorNotFoundError, AuthorIsNotAdultError, BookNotFoundError
+from app.exceptions import (
+    PermissionDeniedError,
+    AuthorNotFoundError,
+    AuthorIsNotAdultError,
+    BookNotFoundError,
+    OrderNotFoundError,
+)
+
+
+async def permission_denied_handler(request: Request, exc: PermissionDeniedError):
+    return JSONResponse(status_code=403, content={"detail": "Permission denied"})
 
 
 async def author_not_found_handler(request: Request, exc: AuthorNotFoundError):
@@ -14,3 +24,7 @@ async def author_is_not_adult(request: Request, exc: AuthorIsNotAdultError):
 
 async def book_not_found_handler(request: Request, exc: BookNotFoundError):
     return JSONResponse(status_code=404, content={"detail": "Book not found"})
+
+
+async def order_not_found_handler(request: Request, exc: OrderNotFoundError):
+    return JSONResponse(status_code=404, content={"detail": "Order not found"})

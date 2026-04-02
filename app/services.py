@@ -2,7 +2,7 @@ from datetime import datetime, date
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import crud
-from app.models import User, Author, Book
+from app.models import User, Author, Book, UserRole, Order
 from app.schemas import (
     UserCreate,
     UserCreateInDB,
@@ -12,6 +12,9 @@ from app.schemas import (
     AuthorUpdate,
     BookCreate,
     BookUpdate,
+    OrderCreate,
+    OrderCreateInDB,
+    OrderUpdate,
 )
 from app.security import get_password_hash, verify_password, create_access_token
 from app.exceptions import (
@@ -20,7 +23,7 @@ from app.exceptions import (
     UnauthorizedError,
     AuthorNotFoundError,
     AuthorIsNotAdultError,
-    BookNotFoundError,
+    BookNotFoundError, OrderNotFoundError, PermissionDeniedError,
 )
 
 
@@ -184,3 +187,18 @@ async def delete_book(db: AsyncSession, book_id: int) -> None:
         raise BookNotFoundError()
 
     await crud.delete_book(db, book_id)
+
+
+# ORDERS
+
+
+async def get_order(db: AsyncSession, order_id: int, user: User) -> Order:
+    order = await crud.get_order_by_id(db, order_id)
+
+    if not order:
+        raise OrderNotFoundError()
+    
+    if order.user_id != user.id and user.role != UserRole.ADMIN:
+        raise PermissionDeniedError()
+
+    return order

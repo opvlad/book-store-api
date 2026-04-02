@@ -6,6 +6,10 @@ class UnauthorizedError(Exception):
     pass
 
 
+class PermissionDeniedError(Exception):
+    pass
+
+
 class UserNotFoundError(Exception):
     pass
 
@@ -19,5 +23,9 @@ class AuthorIsNotAdultError(Exception):
 
 
 class BookNotFoundError(Exception):
+    pass
+
+
+class OrderNotFoundError(Exception):
     pass
 
