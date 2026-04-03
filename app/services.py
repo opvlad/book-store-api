@@ -16,7 +16,6 @@ from app.schemas import (
     BookUpdate,
     OrderCreate,
     OrderCreateInDB,
-    OrderUpdate,
 )
 from app.security import get_password_hash, verify_password, create_access_token
 from app.exceptions import (
@@ -212,13 +211,17 @@ async def get_order(db: AsyncSession, order_id: int, user: User) -> Order:
 
 
 async def get_orders(
-    db: AsyncSession, limit: int, offset: int, user: User
+    db: AsyncSession, limit: int, offset: int, user: User, admin_action: bool = False
 ) -> tuple[int, list[Order]]:
+    if admin_action:
+        return await crud.get_orders(db, limit, offset)
 
-    # add where to crud, user can get only own orders
-
-    if user.role != UserRole.ADMIN:
-        total, items = await crud.get_orders(db, limit=limit, offset=offset, )
+    return await crud.get_orders(
+        db,
+        limit=limit,
+        offset=offset,
+        owner_id=user.id,
+    )
 
 
 async def create_order(db: AsyncSession, order: OrderCreate, user: User) -> Order:

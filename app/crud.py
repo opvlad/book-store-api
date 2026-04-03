@@ -163,12 +163,20 @@ async def get_order_by_id(db: AsyncSession, order_id: int) -> Order | None:
 
 
 async def get_orders(
-    db: AsyncSession, limit: int, offset: int
+    db: AsyncSession, limit: int, offset: int, owner_id: int | None = None
 ) -> tuple[int, list[Order]]:
     items = await db.execute(
-        select(Order).order_by(Order.id).limit(limit).offset(offset)
+        select(Order)
+        .where(Order.user_id == owner_id if owner_id else True)
+        .order_by(Order.id)
+        .limit(limit)
+        .offset(offset)
     )
-    total = await db.scalar(select(func.count(Order.id)))
+    total = await db.scalar(
+        select(func.count(Order.id)).where(
+            Order.user_id == owner_id if owner_id else True
+        )
+    )
     return total, list(items.scalars().all())
 
 

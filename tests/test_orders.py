@@ -79,6 +79,100 @@ async def test_get_order_details_not_found(client: AsyncClient, admin_token):
     assert response.json()["detail"] == "Order not found"
 
 
+async def test_get_my_orders_empty(client: AsyncClient, user_token):
+    response = await client.get(
+        "/api/v1/orders/me",
+        headers={"Authorization": f"Bearer {user_token}"},
+    )
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["total"] == 0
+    assert data["items"] == []
+
+
+async def test_get_my_orders_success(client: AsyncClient, test_order):
+    owner_token = create_access_token(data={"id": test_order.user_id})
+    response = await client.get(
+        "/api/v1/orders/me",
+        headers={"Authorization": f"Bearer {owner_token}"},
+    )
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["total"] == 1
+    assert data["limit"] == 100
+    assert data["offset"] == 0
+    assert len(data["items"]) == 1
+    assert data["items"][0]["user_id"] == test_order.user_id
+
+
+async def test_get_my_orders_paginated(client: AsyncClient, user_token):
+    response = await client.get(
+        "/api/v1/orders/me?limit=50&offset=2",
+        headers={"Authorization": f"Bearer {user_token}"},
+    )
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["limit"] == 50
+    assert data["offset"] == 2
+
+
+async def test_get_my_orders_unauthorized(client: AsyncClient):
+    response = await client.get(
+        "/api/v1/orders/me",
+    )
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Not authenticated"
+
+
+async def test_get_orders_empty(client: AsyncClient, admin_token):
+    response = await client.get(
+        "/api/v1/orders",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["total"] == 0
+    assert data["items"] == []
+
+
+async def test_get_orders_success(client: AsyncClient, test_order, admin_token):
+    response = await client.get(
+        "/api/v1/orders",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["total"] == 1
+    assert data["limit"] == 100
+    assert data["offset"] == 0
+    assert len(data["items"]) == 1
+
+
+async def test_get_orders_paginated(client: AsyncClient, admin_token):
+    response = await client.get(
+        "/api/v1/orders?limit=50&offset=2",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["limit"] == 50
+    assert data["offset"] == 2
+
+
+async def test_get_orders_unauthorized(client: AsyncClient):
+    response = await client.get(
+        "/api/v1/orders",
+    )
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Not authenticated"
+
+
 async def test_create_order_success(client: AsyncClient, test_book, test_user):
     user_token = create_access_token(data={"id": test_user.id})
     order = {"book_id": test_book.id, "quantity": 1, "note": "very important"}
