@@ -158,7 +158,7 @@ class OrderCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     book_id: int
-    quantity: int
+    quantity: int = Field(..., gt=0)
     note: str | None = None
 
 
@@ -167,12 +167,13 @@ class OrderCreateInDB(OrderCreate):
 
     user_id: int
     status: OrderStatus
+    total_amount: Decimal
 
 
 class OrderUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     book_id: int
-    quantity: int
+    quantity: int = Field(..., gt=0)
     status: OrderStatus
     note: str | None = None

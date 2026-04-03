@@ -1,8 +1,10 @@
 from datetime import datetime, date
+from decimal import Decimal
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import crud
-from app.models import User, Author, Book, UserRole, Order
+from app.models import User, Author, Book, Order, UserRole, OrderStatus
 from app.schemas import (
     UserCreate,
     UserCreateInDB,
@@ -18,12 +20,15 @@ from app.schemas import (
 )
 from app.security import get_password_hash, verify_password, create_access_token
 from app.exceptions import (
+    PermissionDeniedError,
+    EntityNotFoundError,
     UserNotFoundError,
     DuplicateFieldError,
     UnauthorizedError,
     AuthorNotFoundError,
     AuthorIsNotAdultError,
-    BookNotFoundError, OrderNotFoundError, PermissionDeniedError,
+    BookNotFoundError,
+    OrderNotFoundError,
 )
 
 
@@ -156,7 +161,9 @@ async def get_book(db: AsyncSession, book_id: int) -> Book:
     return book
 
 
-async def get_books(db: AsyncSession, limit: int, offset: int) -> tuple[int, list[Book]]:
+async def get_books(
+    db: AsyncSession, limit: int, offset: int
+) -> tuple[int, list[Book]]:
     return await crud.get_books(db, limit, offset)
 
 
@@ -197,8 +204,36 @@ async def get_order(db: AsyncSession, order_id: int, user: User) -> Order:
 
     if not order:
         raise OrderNotFoundError()
-    
+
     if order.user_id != user.id and user.role != UserRole.ADMIN:
         raise PermissionDeniedError()
 
     return order
+
+
+async def get_orders(
+    db: AsyncSession, limit: int, offset: int, user: User
+) -> tuple[int, list[Order]]:
+
+    # add where to crud, user can get only own orders
+
+    if user.role != UserRole.ADMIN:
+        total, items = await crud.get_orders(db, limit=limit, offset=offset, )
+
+
+async def create_order(db: AsyncSession, order: OrderCreate, user: User) -> Order:
+    book = await crud.get_book_by_id(db, order.book_id)
+    if not book:
+        raise EntityNotFoundError(
+            status_code=400, entity_name="Book", entity_id=order.book_id
+        )
+
+    total_amount = Decimal(book.price * order.quantity)
+
+    order_create_in_db = OrderCreateInDB(
+        **order.model_dump(),
+        user_id=user.id,
+        status=OrderStatus.PENDING,
+        total_amount=total_amount,
+    )
+    return await crud.create_order(db, order_create_in_db)

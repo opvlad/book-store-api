@@ -1,34 +1,65 @@
 from decimal import Decimal
-from httpx import AsyncClient
+from httpx import AsyncClient, Response
+from pytest import mark
 
+from app.models import Order, OrderStatus
 from app.security import create_access_token
 from app.schemas import OrderResponse
 
 
-def assert_order_response(response, order):
+def assert_order_response_data(response: Response, order: Order):
     response_data = OrderResponse.model_validate(response.json())
     db_data = OrderResponse.model_validate(order)
 
     assert response_data == db_data
 
 
-async def test_get_order_details_as_user_success(client: AsyncClient, test_order):
+async def test_get_my_order_details_success(client: AsyncClient, test_order):
     owner_token = create_access_token(data={"id": test_order.user_id})
     response = await client.get(
-        f"/api/v1/orders/{test_order.id}",
+        f"/api/v1/orders/me/{test_order.id}",
         headers={"Authorization": f"Bearer {owner_token}"},
     )
     assert response.status_code == 200
-    assert_order_response(response, test_order)
+    assert_order_response_data(response, test_order)
 
 
-async def test_get_order_details_as_admin_success(client: AsyncClient, test_order, admin_token):
+async def test_get_my_order_details_unauthorized(client: AsyncClient, test_order):
+    response = await client.get(
+        f"/api/v1/orders/me/{test_order.id}",
+    )
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Not authenticated"
+
+
+async def test_get_my_order_details_not_own(
+    client: AsyncClient, test_order, test_other_user
+):
+    not_owner_token = create_access_token(data={"id": test_other_user.id})
+    response = await client.get(
+        f"/api/v1/orders/me/{test_order.id}",
+        headers={"Authorization": f"Bearer {not_owner_token}"},
+    )
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Permission denied"
+
+
+async def test_get_my_order_details_not_found(client: AsyncClient, user_token):
+    response = await client.get(
+        "/api/v1/orders/me/999",
+        headers={"Authorization": f"Bearer {user_token}"},
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Order not found"
+
+
+async def test_get_order_details_success(client: AsyncClient, test_order, admin_token):
     response = await client.get(
         f"/api/v1/orders/{test_order.id}",
         headers={"Authorization": f"Bearer {admin_token}"},
     )
     assert response.status_code == 200
-    assert_order_response(response, test_order)
+    assert_order_response_data(response, test_order)
 
 
 async def test_get_order_details_unauthorized(client: AsyncClient, test_order):
@@ -39,22 +70,62 @@ async def test_get_order_details_unauthorized(client: AsyncClient, test_order):
     assert response.json()["detail"] == "Not authenticated"
 
 
-async def test_get_order_details_forbidden(client: AsyncClient, test_order, test_other_user):
-    user_token = create_access_token(data={"id": test_other_user.id})
+async def test_get_order_details_not_found(client: AsyncClient, admin_token):
     response = await client.get(
-        f"/api/v1/orders/{test_order.id}",
-        headers={"Authorization": f"Bearer {user_token}"},
-    )
-    assert response.status_code == 403
-    assert response.json()["detail"] == "Permission denied"
-
-
-async def test_get_order_details_not_found(client: AsyncClient, user_token):
-    response = await client.get(
-        "/api/v1/orders/999",
-        headers={"Authorization": f"Bearer {user_token}"},
+        "/api/v1/orders/me/999",
+        headers={"Authorization": f"Bearer {admin_token}"},
     )
     assert response.status_code == 404
     assert response.json()["detail"] == "Order not found"
 
 
+async def test_create_order_success(client: AsyncClient, test_book, test_user):
+    user_token = create_access_token(data={"id": test_user.id})
+    order = {"book_id": test_book.id, "quantity": 1, "note": "very important"}
+
+    response = await client.post(
+        "/api/v1/orders/me",
+        json=order,
+        headers={"Authorization": f"Bearer {user_token}"},
+    )
+    assert response.status_code == 201
+
+    data = response.json()
+    assert data["user_id"] == test_user.id
+    assert data["book_id"] == test_book.id
+    assert data["status"] == OrderStatus.PENDING
+    assert data["quantity"] == order["quantity"]
+    assert Decimal(data["total_amount"]) == Decimal(test_book.price * order["quantity"])
+    assert data["note"] == order["note"]
+
+
+async def test_create_order_unauthorized(client: AsyncClient, test_book):
+    response = await client.post(
+        "/api/v1/orders/me",
+        json={"book_id": test_book.id, "quantity": 1, "note": "very important"},
+    )
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Not authenticated"
+
+
+async def test_create_order_not_existed_book(client: AsyncClient, user_token):
+    order = {"book_id": 999, "quantity": 1, "note": "very important"}
+    response = await client.post(
+        "/api/v1/orders/me",
+        json=order,
+        headers={"Authorization": f"Bearer {user_token}"},
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"] == f"Book with id {order['book_id']} not found"
+
+
+@mark.parametrize("quantity", [0, -10])
+async def test_create_order_invalid_quantity(
+    client: AsyncClient, test_book, user_token, quantity
+):
+    response = await client.post(
+        "/api/v1/orders/me",
+        json={"book_id": test_book.id, "quantity": quantity, "note": "very important"},
+        headers={"Authorization": f"Bearer {user_token}"},
+    )
+    assert response.status_code == 422
