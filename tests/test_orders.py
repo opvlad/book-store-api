@@ -223,3 +223,132 @@ async def test_create_order_invalid_quantity(
         headers={"Authorization": f"Bearer {user_token}"},
     )
     assert response.status_code == 422
+
+
+async def test_update_order_success(client: AsyncClient, test_order, admin_token):
+    order_update = {
+        "status": OrderStatus.PAID,
+        "note": "test note",
+    }
+
+    response = await client.patch(
+        f"/api/v1/orders/{test_order.id}",
+        json=order_update,
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["status"] == order_update["status"]
+    assert data["note"] == order_update["note"]
+
+
+async def test_update_order_only_quantity(
+    client: AsyncClient, test_order, test_book, admin_token
+):
+    order_update = {"quantity": 7}
+
+    response = await client.patch(
+        f"/api/v1/orders/{test_order.id}",
+        json=order_update,
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert response.status_code == 200
+    assert Decimal(response.json()["total_amount"]) == Decimal(
+        order_update["quantity"] * test_book.price
+    )
+
+
+async def test_update_order_only_quantity_and_book(
+    client: AsyncClient, test_order, test_other_book, admin_token
+):
+    order_update = {"book_id": test_other_book.id, "quantity": 7}
+
+    response = await client.patch(
+        f"/api/v1/orders/{test_order.id}",
+        json=order_update,
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert response.status_code == 200
+    assert Decimal(response.json()["total_amount"]) == Decimal(
+        order_update["quantity"] * test_other_book.price
+    )
+
+
+async def test_update_order_unauthorized(client: AsyncClient, test_order):
+    response = await client.patch(
+        f"/api/v1/orders/{test_order.id}",
+        json={"note": "new note"},
+    )
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Not authenticated"
+
+
+async def test_update_order_forbidden(client: AsyncClient, test_order, user_token):
+    response = await client.patch(
+        f"/api/v1/orders/{test_order.id}",
+        json={"note": "new note"},
+        headers={"Authorization": f"Bearer {user_token}"},
+    )
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Admin permission required"
+
+
+async def test_update_order_not_found(client: AsyncClient, admin_token):
+    response = await client.patch(
+        "/api/v1/orders/999",
+        json={"note": "new note"},
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Order not found"
+
+
+async def test_update_order_not_existed_book(
+    client: AsyncClient, test_order, admin_token
+):
+    response = await client.patch(
+        f"/api/v1/orders/{test_order.id}",
+        json={"book_id": 999},
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Book with id 999 not found"
+
+
+async def test_delete_order_success(client: AsyncClient, test_order, admin_token):
+    response = await client.delete(
+        f"/api/v1/orders/{test_order.id}",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert response.status_code == 204
+
+    response = await client.get(
+        f"/api/v1/orders/{test_order.id}",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert response.status_code == 404
+
+
+async def test_delete_order_unauthorized(client: AsyncClient, test_order):
+    response = await client.delete(f"/api/v1/orders/{test_order.id}")
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Not authenticated"
+
+
+async def test_delete_order_forbidden(client: AsyncClient, test_order, user_token):
+    response = await client.delete(
+        f"/api/v1/orders/{test_order.id}",
+        headers={"Authorization": f"Bearer {user_token}"},
+    )
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Admin permission required"
+
+
+async def test_delete_order_not_found(client: AsyncClient, admin_token):
+    response = await client.delete(
+        "/api/v1/orders/999",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Order not found"

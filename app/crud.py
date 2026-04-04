@@ -10,7 +10,7 @@ from app.schemas import (
     BookCreate,
     BookUpdate,
     OrderCreateInDB,
-    OrderUpdate,
+    OrderUpdate, OrderUpdateInDB,
 )
 
 from sqlalchemy import select, func
@@ -189,7 +189,7 @@ async def create_order(db: AsyncSession, order: OrderCreateInDB) -> Order:
 
 
 async def update_order(
-    db: AsyncSession, order_id: int, order_update: OrderUpdate
+    db: AsyncSession, order_id: int, order_update: OrderUpdateInDB
 ) -> Order:
     db_order = await get_order_by_id(db, order_id)
 
@@ -205,3 +205,4 @@ async def update_order(
 async def delete_order(db: AsyncSession, order_id: int) -> None:
     db_order = await get_order_by_id(db, order_id)
     await db.delete(db_order)
+    await db.flush()

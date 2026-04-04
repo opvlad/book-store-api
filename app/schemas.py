@@ -142,7 +142,7 @@ class OrderResponse(BaseModel):
     book_id: int
     status: OrderStatus
     quantity: int = Field(..., gt=0)
-    total_amount: float
+    total_amount: Decimal
     note: str | None = None
     created_at: datetime
 
@@ -173,7 +173,13 @@ class OrderCreateInDB(OrderCreate):
 class OrderUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    book_id: int
-    quantity: int = Field(..., gt=0)
-    status: OrderStatus
+    book_id: int | None = None
+    quantity: int | None = Field(default=None, gt=0)
+    status: OrderStatus | None = None
     note: str | None = None
+
+
+class OrderUpdateInDB(OrderUpdate):
+    model_config = ConfigDict(extra="forbid")
+
+    total_amount: Decimal | None = None

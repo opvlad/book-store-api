@@ -129,6 +129,21 @@ async def test_book(db_session, test_author) -> Book:
 
 
 @pytest.fixture()
+async def test_other_book(db_session, test_author) -> Book:
+    test_book = Book(
+        title="Other Book",
+        description="Other description",
+        price=Decimal(50.2),
+        stock_quantity=5,
+        author_id=test_author.id,
+    )
+    db_session.add(test_book)
+    await db_session.commit()
+    await db_session.refresh(test_book)
+    return test_book
+
+
+@pytest.fixture()
 async def test_order(db_session, test_user, test_book) -> Order:
     test_order = Order(
         user_id=test_user.id,

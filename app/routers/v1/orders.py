@@ -2,11 +2,18 @@ from fastapi import APIRouter, Depends
 
 from app.dependencies import sessionDep, get_current_user, get_current_admin
 from app.models import User
-from app.schemas import OrderResponse, OrderCreate, OrderListPaginatedResponse
+from app.schemas import (
+    OrderResponse,
+    OrderCreate,
+    OrderListPaginatedResponse,
+    OrderUpdate,
+)
 from app.services import (
     get_order as service_get_order,
     get_orders as service_get_orders,
     create_order as service_create_order,
+    update_order as service_update_order,
+    delete_order as service_delete_order,
 )
 
 router = APIRouter()
@@ -55,3 +62,18 @@ async def get_order_details(
     db: sessionDep, order_id: int, admin: User = Depends(get_current_admin)
 ):
     return await service_get_order(db, order_id, admin)
+
+
+@router.patch("/{order_id}", response_model=OrderResponse)
+async def modify_order(
+    db: sessionDep,
+    order_id: int,
+    order_update: OrderUpdate,
+    _: User = Depends(get_current_admin),
+):
+    return await service_update_order(db, order_id, order_update)
+
+
+@router.delete("/{order_id}", status_code=204)
+async def delete_order(db: sessionDep, order_id: int, admin: User = Depends(get_current_admin)):
+    await service_delete_order(db, order_id)

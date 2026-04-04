@@ -16,6 +16,8 @@ from app.schemas import (
     BookUpdate,
     OrderCreate,
     OrderCreateInDB,
+    OrderUpdate,
+    OrderUpdateInDB,
 )
 from app.security import get_password_hash, verify_password, create_access_token
 from app.exceptions import (
@@ -240,3 +242,47 @@ async def create_order(db: AsyncSession, order: OrderCreate, user: User) -> Orde
         total_amount=total_amount,
     )
     return await crud.create_order(db, order_create_in_db)
+
+
+async def update_order(
+    db: AsyncSession, order_id: int, order_update: OrderUpdate
+) -> Order:
+    order = await crud.get_order_by_id(db, order_id)
+    if not order:
+        raise OrderNotFoundError()
+
+    if order_update.book_id:
+        book = await crud.get_book_by_id(db, order_update.book_id)
+        if not book:
+            raise EntityNotFoundError(
+                status_code=400, entity_name="Book", entity_id=order_update.book_id
+            )
+
+    if order_update.quantity:
+        book = (
+            await crud.get_book_by_id(db, order_update.book_id)
+            if order_update.book_id
+            else await crud.get_book_by_id(db, order.book_id)
+        )
+
+        total_amount = Decimal(book.price * order_update.quantity)
+
+        order_update_in_db = OrderUpdateInDB(
+            **order_update.model_dump(exclude_unset=True), total_amount=total_amount
+        )
+
+        return await crud.update_order(db, order_id, order_update_in_db)
+
+    return await crud.update_order(
+        db,
+        order_id,
+        OrderUpdateInDB(**order_update.model_dump(exclude_unset=True)),
+    )
+
+
+async def delete_order(db: AsyncSession, order_id: int) -> None:
+    order = await crud.get_order_by_id(db, order_id)
+    if not order:
+        raise OrderNotFoundError()
+
+    await crud.delete_order(db, order_id)
