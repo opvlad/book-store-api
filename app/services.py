@@ -229,9 +229,7 @@ async def get_orders(
 async def create_order(db: AsyncSession, order: OrderCreate, user: User) -> Order:
     book = await crud.get_book_by_id(db, order.book_id)
     if not book:
-        raise EntityNotFoundError(
-            status_code=400, entity_name="Book", entity_id=order.book_id
-        )
+        raise EntityNotFoundError(entity_name="Book", entity_id=order.book_id)
 
     total_amount = Decimal(book.price * order.quantity)
 
@@ -251,21 +249,16 @@ async def update_order(
     if not order:
         raise OrderNotFoundError()
 
-    if order_update.book_id:
-        book = await crud.get_book_by_id(db, order_update.book_id)
+    if order_update.book_id or order_update.quantity:
+        book_id = order_update.book_id if order_update.book_id else order.book_id
+        book = await crud.get_book_by_id(db, book_id)
+
         if not book:
-            raise EntityNotFoundError(
-                status_code=400, entity_name="Book", entity_id=order_update.book_id
-            )
+            raise EntityNotFoundError(entity_name="Book", entity_id=book_id)
 
-    if order_update.quantity:
-        book = (
-            await crud.get_book_by_id(db, order_update.book_id)
-            if order_update.book_id
-            else await crud.get_book_by_id(db, order.book_id)
-        )
+        quantity = order_update.quantity if order_update.quantity else order.quantity
 
-        total_amount = Decimal(book.price * order_update.quantity)
+        total_amount = Decimal(book.price * quantity)
 
         order_update_in_db = OrderUpdateInDB(
             **order_update.model_dump(exclude_unset=True), total_amount=total_amount

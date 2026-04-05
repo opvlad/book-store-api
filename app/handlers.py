@@ -16,7 +16,7 @@ async def permission_denied_handler(request: Request, exc: PermissionDeniedError
 
 
 async def entity_not_found_handler(request: Request, exc: EntityNotFoundError):
-    return JSONResponse(status_code=exc.status_code, content={"detail": str(exc)})
+    return JSONResponse(status_code=400, content={"detail": str(exc)})
 
 
 async def author_not_found_handler(request: Request, exc: AuthorNotFoundError):

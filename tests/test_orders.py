@@ -72,7 +72,7 @@ async def test_get_order_details_unauthorized(client: AsyncClient, test_order):
 
 async def test_get_order_details_not_found(client: AsyncClient, admin_token):
     response = await client.get(
-        "/api/v1/orders/me/999",
+        "/api/v1/orders/999",
         headers={"Authorization": f"Bearer {admin_token}"},
     )
     assert response.status_code == 404
@@ -256,6 +256,22 @@ async def test_update_order_only_quantity(
     assert response.status_code == 200
     assert Decimal(response.json()["total_amount"]) == Decimal(
         order_update["quantity"] * test_book.price
+    )
+
+
+async def test_update_order_only_book(
+    client: AsyncClient, test_order, test_other_book, admin_token
+):
+    order_update = {"book_id": test_other_book.id}
+
+    response = await client.patch(
+        f"/api/v1/orders/{test_order.id}",
+        json=order_update,
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert response.status_code == 200
+    assert Decimal(response.json()["total_amount"]) == Decimal(
+        test_order.quantity * test_other_book.price
     )
 
 

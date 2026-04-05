@@ -76,11 +76,7 @@ class User(Base):
         server_default=func.now(),
     )
 
-    orders: Mapped[list["Order"]] = relationship(
-        back_populates="user",
-        lazy="selectin",
-        order_by="Order.id",
-    )
+    orders: Mapped[list["Order"]] = relationship(back_populates="user", lazy="selectin")
 
 
 class Order(Base):

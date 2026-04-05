@@ -118,7 +118,7 @@ async def test_book(db_session, test_author) -> Book:
     test_book = Book(
         title="Test Book",
         description="Test description",
-        price=Decimal(100),
+        price=Decimal("100"),
         stock_quantity=10,
         author_id=test_author.id,
     )
@@ -133,7 +133,7 @@ async def test_other_book(db_session, test_author) -> Book:
     test_book = Book(
         title="Other Book",
         description="Other description",
-        price=Decimal(50.2),
+        price=Decimal("50.2"),
         stock_quantity=5,
         author_id=test_author.id,
     )
