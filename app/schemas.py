@@ -3,7 +3,7 @@ from datetime import datetime, date
 from decimal import Decimal
 from pydantic import BaseModel, EmailStr, ConfigDict, Field
 
-from app.models import UserRole
+from app.models import UserRole, OrderStatus
 
 
 class Token(BaseModel):
@@ -129,3 +129,57 @@ class BookUpdate(BaseModel):
     price: Decimal | None = Field(default=None, gt=0)
     stock_quantity: int | None = Field(default=None, ge=0)
     author_id: int | None = Field(default=None)
+
+
+# ORDERS
+
+
+class OrderResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    user_id: int
+    book_id: int
+    status: OrderStatus
+    quantity: int = Field(..., gt=0)
+    total_amount: Decimal
+    note: str | None = None
+    created_at: datetime
+
+
+class OrderListPaginatedResponse(BaseModel):
+    total: int
+    limit: int
+    offset: int
+    items: List[OrderResponse]
+
+
+class OrderCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    book_id: int
+    quantity: int = Field(..., gt=0)
+    note: str | None = None
+
+
+class OrderCreateInDB(OrderCreate):
+    model_config = ConfigDict(extra="forbid")
+
+    user_id: int
+    status: OrderStatus
+    total_amount: Decimal
+
+
+class OrderUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    book_id: int | None = None
+    quantity: int | None = Field(default=None, gt=0)
+    status: OrderStatus | None = None
+    note: str | None = None
+
+
+class OrderUpdateInDB(OrderUpdate):
+    model_config = ConfigDict(extra="forbid")
+
+    total_amount: Decimal | None = None

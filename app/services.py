@@ -1,8 +1,10 @@
 from datetime import datetime, date
+from decimal import Decimal
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import crud
-from app.models import User, Author, Book
+from app.models import User, Author, Book, Order, UserRole, OrderStatus
 from app.schemas import (
     UserCreate,
     UserCreateInDB,
@@ -12,15 +14,22 @@ from app.schemas import (
     AuthorUpdate,
     BookCreate,
     BookUpdate,
+    OrderCreate,
+    OrderCreateInDB,
+    OrderUpdate,
+    OrderUpdateInDB,
 )
 from app.security import get_password_hash, verify_password, create_access_token
 from app.exceptions import (
+    PermissionDeniedError,
+    EntityNotFoundError,
     UserNotFoundError,
     DuplicateFieldError,
     UnauthorizedError,
     AuthorNotFoundError,
     AuthorIsNotAdultError,
     BookNotFoundError,
+    OrderNotFoundError,
 )
 
 
@@ -153,7 +162,9 @@ async def get_book(db: AsyncSession, book_id: int) -> Book:
     return book
 
 
-async def get_books(db: AsyncSession, limit: int, offset: int) -> tuple[int, list[Book]]:
+async def get_books(
+    db: AsyncSession, limit: int, offset: int
+) -> tuple[int, list[Book]]:
     return await crud.get_books(db, limit, offset)
 
 
@@ -184,3 +195,87 @@ async def delete_book(db: AsyncSession, book_id: int) -> None:
         raise BookNotFoundError()
 
     await crud.delete_book(db, book_id)
+
+
+# ORDERS
+
+
+async def get_order(db: AsyncSession, order_id: int, user: User) -> Order:
+    order = await crud.get_order_by_id(db, order_id)
+
+    if not order:
+        raise OrderNotFoundError()
+
+    if order.user_id != user.id and user.role != UserRole.ADMIN:
+        raise PermissionDeniedError()
+
+    return order
+
+
+async def get_orders(
+    db: AsyncSession, limit: int, offset: int, user: User, admin_action: bool = False
+) -> tuple[int, list[Order]]:
+    if admin_action:
+        return await crud.get_orders(db, limit, offset)
+
+    return await crud.get_orders(
+        db,
+        limit=limit,
+        offset=offset,
+        owner_id=user.id,
+    )
+
+
+async def create_order(db: AsyncSession, order: OrderCreate, user: User) -> Order:
+    book = await crud.get_book_by_id(db, order.book_id)
+    if not book:
+        raise EntityNotFoundError(entity_name="Book", entity_id=order.book_id)
+
+    total_amount = Decimal(book.price * order.quantity)
+
+    order_create_in_db = OrderCreateInDB(
+        **order.model_dump(),
+        user_id=user.id,
+        status=OrderStatus.PENDING,
+        total_amount=total_amount,
+    )
+    return await crud.create_order(db, order_create_in_db)
+
+
+async def update_order(
+    db: AsyncSession, order_id: int, order_update: OrderUpdate
+) -> Order:
+    order = await crud.get_order_by_id(db, order_id)
+    if not order:
+        raise OrderNotFoundError()
+
+    if order_update.book_id or order_update.quantity:
+        book_id = order_update.book_id if order_update.book_id else order.book_id
+        book = await crud.get_book_by_id(db, book_id)
+
+        if not book:
+            raise EntityNotFoundError(entity_name="Book", entity_id=book_id)
+
+        quantity = order_update.quantity if order_update.quantity else order.quantity
+
+        total_amount = Decimal(book.price * quantity)
+
+        order_update_in_db = OrderUpdateInDB(
+            **order_update.model_dump(exclude_unset=True), total_amount=total_amount
+        )
+
+        return await crud.update_order(db, order_id, order_update_in_db)
+
+    return await crud.update_order(
+        db,
+        order_id,
+        OrderUpdateInDB(**order_update.model_dump(exclude_unset=True)),
+    )
+
+
+async def delete_order(db: AsyncSession, order_id: int) -> None:
+    order = await crud.get_order_by_id(db, order_id)
+    if not order:
+        raise OrderNotFoundError()
+
+    await crud.delete_order(db, order_id)

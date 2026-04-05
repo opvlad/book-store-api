@@ -13,7 +13,7 @@ from decimal import Decimal
 
 from app.main import app
 from app.database import Base, get_db
-from app.models import UserRole, User, Author, Book
+from app.models import UserRole, User, Author, Book, Order
 from app.security import get_password_hash, create_access_token
 
 
@@ -118,7 +118,7 @@ async def test_book(db_session, test_author) -> Book:
     test_book = Book(
         title="Test Book",
         description="Test description",
-        price=Decimal(100),
+        price=Decimal("100"),
         stock_quantity=10,
         author_id=test_author.id,
     )
@@ -126,6 +126,35 @@ async def test_book(db_session, test_author) -> Book:
     await db_session.commit()
     await db_session.refresh(test_book)
     return test_book
+
+
+@pytest.fixture()
+async def test_other_book(db_session, test_author) -> Book:
+    test_book = Book(
+        title="Other Book",
+        description="Other description",
+        price=Decimal("50.2"),
+        stock_quantity=5,
+        author_id=test_author.id,
+    )
+    db_session.add(test_book)
+    await db_session.commit()
+    await db_session.refresh(test_book)
+    return test_book
+
+
+@pytest.fixture()
+async def test_order(db_session, test_user, test_book) -> Order:
+    test_order = Order(
+        user_id=test_user.id,
+        book_id=test_book.id,
+        quantity=5,
+        total_amount=Decimal(test_book.price * 5),
+    )
+    db_session.add(test_order)
+    await db_session.commit()
+    await db_session.refresh(test_order)
+    return test_order
 
 
 @pytest.fixture()

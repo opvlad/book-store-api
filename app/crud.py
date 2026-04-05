@@ -1,7 +1,8 @@
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import EmailStr
 
-from app.models import User, Author, Book
+from app.models import User, Author, Book, Order
 from app.schemas import (
     UserCreateInDB,
     UserUpdate,
@@ -9,9 +10,10 @@ from app.schemas import (
     AuthorUpdate,
     BookCreate,
     BookUpdate,
+    OrderCreateInDB,
+    OrderUpdate,
+    OrderUpdateInDB,
 )
-
-from sqlalchemy import select, func
 
 
 # USERS
@@ -150,4 +152,55 @@ async def update_book(db: AsyncSession, book_id: int, book_update: BookUpdate) -
 async def delete_book(db: AsyncSession, book_id: int) -> None:
     db_book = await get_book_by_id(db, book_id)
     await db.delete(db_book)
+    await db.flush()
+
+
+# ORDERS
+
+
+async def get_order_by_id(db: AsyncSession, order_id: int) -> Order | None:
+    return await db.get(Order, order_id)
+
+
+async def get_orders(
+    db: AsyncSession, limit: int, offset: int, owner_id: int | None = None
+) -> tuple[int, list[Order]]:
+    stmt = select(Order)
+    count_stmt = select(func.count(Order.id))
+
+    if owner_id:
+        stmt = stmt.where(Order.user_id == owner_id)
+        count_stmt = count_stmt.where(Order.user_id == owner_id)
+
+    items = await db.execute(stmt.order_by(Order.id).limit(limit).offset(offset))
+    total = await db.scalar(count_stmt)
+
+    return total, list(items.scalars().all())
+
+
+async def create_order(db: AsyncSession, order: OrderCreateInDB) -> Order:
+    db_order = Order(**order.model_dump())
+    db.add(db_order)
+    await db.flush()
+    await db.refresh(db_order)
+    return db_order
+
+
+async def update_order(
+    db: AsyncSession, order_id: int, order_update: OrderUpdateInDB
+) -> Order:
+    db_order = await get_order_by_id(db, order_id)
+
+    updated_data = order_update.model_dump(exclude_unset=True)
+    for key, value in updated_data.items():
+        setattr(db_order, key, value)
+
+    await db.flush()
+    await db.refresh(db_order)
+    return db_order
+
+
+async def delete_order(db: AsyncSession, order_id: int) -> None:
+    db_order = await get_order_by_id(db, order_id)
+    await db.delete(db_order)
     await db.flush()
