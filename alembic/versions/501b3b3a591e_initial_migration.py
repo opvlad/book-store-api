@@ -112,6 +112,7 @@ def upgrade() -> None:
             server_default="standard",
             nullable=False,
         ),
+        sa.Column("priority", sa.Float(), nullable=False),
         sa.Column("note", sa.Text(), nullable=True),
         sa.Column(
             "created_at",

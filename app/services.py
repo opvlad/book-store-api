@@ -4,7 +4,9 @@ from decimal import Decimal
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import crud
+from app.config import priority_points
 from app.models import User, Author, Book, Order, UserRole, OrderStatus
+from app.security import get_password_hash, verify_password, create_access_token
 from app.schemas import (
     UserCreate,
     UserCreateInDB,
@@ -17,9 +19,9 @@ from app.schemas import (
     OrderCreate,
     OrderCreateInDB,
     OrderUpdate,
-    OrderUpdateInDB, UserUpdateAsAdmin,
+    OrderUpdateInDB,
+    UserUpdateAsAdmin,
 )
-from app.security import get_password_hash, verify_password, create_access_token
 from app.exceptions import (
     PermissionDeniedError,
     EntityNotFoundError,
@@ -61,7 +63,9 @@ async def register_user(db: AsyncSession, user: UserCreate) -> User:
     return await crud.create_user(db, user_in_db)
 
 
-async def update_user(db: AsyncSession, user_id: int, user: UserUpdate | UserUpdateAsAdmin) -> User:
+async def update_user(
+    db: AsyncSession, user_id: int, user: UserUpdate | UserUpdateAsAdmin
+) -> User:
     existing_user = await crud.get_user_by_id(db, user_id)
     if not existing_user:
         raise UserNotFoundError()
@@ -202,6 +206,33 @@ async def delete_book(db: AsyncSession, book_id: int) -> None:
 # ORDERS
 
 
+def calculate_priority(
+    user_status: str, delivery_type: str, order_amount: Decimal
+) -> float:
+
+    def get_order_amount_points(amount: Decimal) -> int:
+        if amount < 500:
+            return priority_points["order_amount"]["under_500"]
+
+        elif amount <= 2000:
+            return priority_points["order_amount"]["in_range_500_2000"]
+
+        else:
+            return priority_points["order_amount"]["over_2000"]
+
+    user_status_points = priority_points["user_status"].get(user_status, 0)
+    delivery_type_points = priority_points["delivery_type"].get(delivery_type, 0)
+    order_amount_points = get_order_amount_points(order_amount)
+
+    score = (
+        user_status_points * 0.4
+        + delivery_type_points * 0.35
+        + order_amount_points * 0.25
+    )
+
+    return round(score, 1)
+
+
 async def get_order(db: AsyncSession, order_id: int, user: User) -> Order:
     order = await crud.get_order_by_id(db, order_id)
 
@@ -234,12 +265,18 @@ async def create_order(db: AsyncSession, order: OrderCreate, user: User) -> Orde
         raise EntityNotFoundError(entity_name="Book", entity_id=order.book_id)
 
     total_amount = Decimal(book.price * order.quantity)
+    priority = calculate_priority(
+        user_status=user.status,
+        delivery_type=order.delivery_type,
+        order_amount=total_amount,
+    )
 
     order_create_in_db = OrderCreateInDB(
         **order.model_dump(),
         user_id=user.id,
         status=OrderStatus.PENDING,
         total_amount=total_amount,
+        priority=priority
     )
     return await crud.create_order(db, order_create_in_db)
 
@@ -261,9 +298,14 @@ async def update_order(
         quantity = order_update.quantity if order_update.quantity else order.quantity
 
         total_amount = Decimal(book.price * quantity)
+        priority = calculate_priority(
+            user_status=order.user.status,
+            delivery_type=order.delivery_type,
+            order_amount=total_amount,
+        )
 
         order_update_in_db = OrderUpdateInDB(
-            **order_update.model_dump(exclude_unset=True), total_amount=total_amount
+            **order_update.model_dump(exclude_unset=True), total_amount=total_amount, priority=priority
         )
 
         return await crud.update_order(db, order_id, order_update_in_db)

@@ -145,13 +145,17 @@ class OrderResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    user_id: int
     book_id: int
     status: OrderStatus
     quantity: int = Field(..., gt=0)
     total_amount: Decimal
     delivery_type: DeliveryType
     note: str | None = None
+
+
+class OrderAdminResponse(OrderResponse):
+    user_id: int
+    priority: float
     created_at: datetime
 
 
@@ -160,6 +164,13 @@ class OrderListPaginatedResponse(BaseModel):
     limit: int
     offset: int
     items: List[OrderResponse]
+
+
+class OrderAdminListPaginatedResponse(BaseModel):
+    total: int
+    limit: int
+    offset: int
+    items: List[OrderAdminResponse]
 
 
 class OrderCreate(BaseModel):
@@ -177,6 +188,7 @@ class OrderCreateInDB(OrderCreate):
     user_id: int
     status: OrderStatus
     total_amount: Decimal
+    priority: float
 
 
 class OrderUpdate(BaseModel):
@@ -192,3 +204,4 @@ class OrderUpdateInDB(OrderUpdate):
     model_config = ConfigDict(extra="forbid")
 
     total_amount: Decimal | None = None
+    priority: float | None = None

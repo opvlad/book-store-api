@@ -123,6 +123,7 @@ class Order(Base):
         default=DeliveryType.STANDARD,
         server_default="standard",
     )
+    priority: Mapped[float]
     note: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

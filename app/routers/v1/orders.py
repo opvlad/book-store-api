@@ -4,8 +4,10 @@ from app.dependencies import sessionDep, get_current_user, get_current_admin
 from app.models import User
 from app.schemas import (
     OrderResponse,
+    OrderAdminResponse,
     OrderCreate,
     OrderListPaginatedResponse,
+    OrderAdminListPaginatedResponse,
     OrderUpdate,
 )
 from app.services import (
@@ -37,7 +39,14 @@ async def get_my_orders(
     return {"total": total, "limit": limit, "offset": offset, "items": items}
 
 
-@router.get("", response_model=OrderListPaginatedResponse)
+@router.post("/me", response_model=OrderResponse, status_code=201)
+async def create_order(
+    db: sessionDep, order: OrderCreate, user: User = Depends(get_current_user)
+):
+    return await service_create_order(db, order, user)
+
+
+@router.get("", response_model=OrderAdminListPaginatedResponse)
 async def get_orders(
     db: sessionDep,
     limit: int = 100,
@@ -50,14 +59,7 @@ async def get_orders(
     return {"total": total, "limit": limit, "offset": offset, "items": items}
 
 
-@router.post("/me", response_model=OrderResponse, status_code=201)
-async def create_order(
-    db: sessionDep, order: OrderCreate, user: User = Depends(get_current_user)
-):
-    return await service_create_order(db, order, user)
-
-
-@router.get("/{order_id}", response_model=OrderResponse)
+@router.get("/{order_id}", response_model=OrderAdminResponse)
 async def get_order_details(
     db: sessionDep, order_id: int, admin: User = Depends(get_current_admin)
 ):
