@@ -70,7 +70,7 @@ async def test_user_details_not_found(client: AsyncClient, admin_token):
     assert response.json() == {"detail": "User not found"}
 
 
-async def test_user_details_forbidden(test_user, client: AsyncClient):
+async def test_user_details_forbidden(client: AsyncClient, test_user):
     token = create_access_token(data={"id": test_user.id})
     response = await client.get(
         f"/api/v1/users/{test_user.id}",
@@ -118,63 +118,104 @@ async def test_list_users_pagination(client: AsyncClient, admin_token):
     assert data["limit"] == 50
 
 
-@mark.parametrize("action_type", ["admin_action", "user_action"])
-async def test_update_user_success(
-    client: AsyncClient, action_type, get_update_context
-):
-    update_user = {"username": "new_username"}
-    context = get_update_context(action_type)
+async def test_update_profile_success(client: AsyncClient, user_token):
+    update_user = {"username": "new_username", "email": "new_email@test.com"}
 
     response = await client.patch(
-        url=context["url"], headers=context["headers"], json=update_user
+        url="/api/v1/users/me",
+        headers={"Authorization": f"Bearer {user_token}"},
+        json=update_user,
     )
     assert response.status_code == 200
     assert response.json()["username"] == update_user["username"]
-
-    update_user = {"email": "new_email@test.com"}
-    response = await client.patch(
-        url=context["url"], headers=context["headers"], json=update_user
-    )
-    assert response.status_code == 200
     assert response.json()["email"] == update_user["email"]
 
 
-async def test_update_user_not_found(client: AsyncClient, admin_token):
+async def test_update_profile_unauthorized(client: AsyncClient):
+    update_user = {"username": "new_username", "email": "new_email@test.com"}
+
     response = await client.patch(
-        "/api/v1/users/999",
-        json={},
-        headers={"Authorization": f"Bearer {admin_token}"},
+        url="/api/v1/users/me",
+        json=update_user,
     )
-    assert response.status_code == 404
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Not authenticated"
+
+
+async def test_update_profile_not_found(client: AsyncClient):
+    token = create_access_token(data={"id": 999})
+    response = await client.patch(
+        "/api/v1/users/me", headers={"Authorization": f"Bearer {token}"}
+    )
+    assert response.status_code == 401
     assert response.json() == {"detail": "User not found"}
 
 
-@mark.parametrize("action_type", ["admin_action", "user_action"])
-async def test_update_user_duplicated_username(
-    test_user, test_other_user, get_update_context, action_type, client: AsyncClient
+async def test_update_profile_duplicated_username(
+    client: AsyncClient, user_token, test_other_user
 ):
-    context = get_update_context(action_type)
     response = await client.patch(
-        url=context["url"],
-        headers=context["headers"],
+        url="/api/v1/users/me",
+        headers={"Authorization": f"Bearer {user_token}"},
         json={"username": test_other_user.username},
     )
     assert response.status_code == 400
     assert response.json()["detail"] == "Username already exists"
 
 
-@mark.parametrize("action_type", ["admin_action", "user_action"])
-async def test_update_user_duplicated_email(
-    test_user, test_other_user, get_update_context, action_type, client: AsyncClient
+async def test_update_profile_duplicated_email(
+    client: AsyncClient, user_token, test_other_user
 ):
-    context = get_update_context(action_type)
     response = await client.patch(
-        url=context["url"],
-        headers=context["headers"],
+        url="/api/v1/users/me",
+        headers={"Authorization": f"Bearer {user_token}"},
         json={"email": test_other_user.email},
     )
     assert response.status_code == 400
     assert response.json()["detail"] == "Email already exists"
+
+
+@mark.parametrize("user_status", ["regular", "loyal", "vip"])
+async def test_user_update_success(
+    client: AsyncClient, test_user, admin_token, user_status
+):
+
+    response = await client.patch(
+        url=f"/api/v1/users/{test_user.id}",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        json={"status": user_status},
+    )
+    assert response.status_code == 200
+    assert response.json()["status"] == user_status
+
+
+async def test_user_update_unauthorized(client: AsyncClient):
+    response = await client.patch(
+        url="/api/v1/users/me",
+        json={"username": "new_username"},
+    )
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Not authenticated"
+
+
+async def test_user_update_not_found(client: AsyncClient, admin_token):
+    response = await client.patch(
+        "/api/v1/users/999",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        json={"status": "loyal"},
+    )
+    assert response.status_code == 404
+    assert response.json() == {"detail": "User not found"}
+
+
+@mark.parametrize("user_status", ["123", "not", None])
+async def test_update_user_invalid_data(client: AsyncClient, test_user, admin_token, user_status):
+    response = await client.patch(
+        f"/api/v1/users/{test_user.id}",
+        json={"status": user_status},
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert response.status_code == 422
 
 
 async def test_delete_user_success(test_user, client: AsyncClient, admin_token):

@@ -8,7 +8,6 @@ priority_points = {
         "standard": 2,
         "express": 5,
         "urgent": 10,
-
     },
     "order_amount": {
         "under_500": 2,

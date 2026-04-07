@@ -47,6 +47,12 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column(
+            "status",
+            sa.Enum("regular", "loyal", "vip", name="userstatus"),
+            server_default="regular",
+            nullable=False,
+        ),
+        sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
             nullable=False,
@@ -100,6 +106,12 @@ def upgrade() -> None:
         ),
         sa.Column("quantity", sa.Integer(), nullable=False),
         sa.Column("total_amount", sa.Numeric(precision=10, scale=2), nullable=False),
+        sa.Column(
+            "delivery_type",
+            sa.Enum("standard", "express", "urgent", name="deliverytype"),
+            server_default="standard",
+            nullable=False,
+        ),
         sa.Column("note", sa.Text(), nullable=True),
         sa.Column(
             "created_at",
@@ -122,9 +134,11 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_table("orders")
     sa.Enum(name="orderstatus").drop(op.get_bind(), checkfirst=True)
+    sa.Enum(name="deliverytype").drop(op.get_bind(), checkfirst=True)
     op.drop_index(op.f("ix_books_title"), table_name="books")
     op.drop_index(op.f("ix_books_author_id"), table_name="books")
     op.drop_table("books")
     op.drop_table("users")
     sa.Enum(name="userrole").drop(op.get_bind(), checkfirst=True)
+    sa.Enum(name="userstatus").drop(op.get_bind(), checkfirst=True)
     op.drop_table("authors")

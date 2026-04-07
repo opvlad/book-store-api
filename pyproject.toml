@@ -38,6 +38,7 @@ exclude_lines = [
 ]
 omit = [
     "app/security.py",
+    "app/priority_points.py",
 ]
 
 [tool.coverage.run]

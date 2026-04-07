@@ -13,12 +13,24 @@ class UserRole(StrEnum):
     USER = "user"
 
 
+class UserStatus(StrEnum):
+    REGULAR = "regular"
+    LOYAL = "loyal"
+    VIP = "vip"
+
+
 class OrderStatus(StrEnum):
     PENDING = "pending"
     PAID = "paid"
     SHIPPED = "shipped"
     DELIVERED = "delivered"
     CANCELLED = "cancelled"
+
+
+class DeliveryType(StrEnum):
+    STANDARD = "standard"
+    EXPRESS = "express"
+    URGENT = "urgent"
 
 
 class Author(Base):
@@ -70,6 +82,14 @@ class User(Base):
         default=UserRole.USER,
         server_default="user",
     )
+    status: Mapped[UserStatus] = mapped_column(
+        Enum(
+            UserStatus,
+            values_callable=lambda elements: [element.value for element in elements],
+        ),
+        default=UserStatus.REGULAR,
+        server_default="regular",
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(UTC),
@@ -95,6 +115,14 @@ class Order(Base):
     )
     quantity: Mapped[int]
     total_amount: Mapped[Decimal] = mapped_column(Numeric(precision=10, scale=2))
+    delivery_type: Mapped[DeliveryType] = mapped_column(
+        Enum(
+            DeliveryType,
+            values_callable=lambda elements: [element.value for element in elements],
+        ),
+        default=DeliveryType.STANDARD,
+        server_default="standard",
+    )
     note: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

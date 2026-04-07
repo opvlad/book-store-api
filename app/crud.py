@@ -51,10 +51,9 @@ async def create_user(db: AsyncSession, user: UserCreateInDB) -> User:
     return db_user
 
 
-async def update_user(db: AsyncSession, user_id: int, user: UserUpdate) -> User:
+async def update_user(db: AsyncSession, user_id: int, updated_data: dict) -> User:
     db_user = await get_user_by_id(db, user_id)
 
-    updated_data = user.model_dump(exclude_unset=True)
     for key, value in updated_data.items():
         setattr(db_user, key, value)
 

@@ -3,7 +3,7 @@ from datetime import datetime, date
 from decimal import Decimal
 from pydantic import BaseModel, EmailStr, ConfigDict, Field
 
-from app.models import UserRole, OrderStatus
+from app.models import UserRole, UserStatus, OrderStatus
 
 
 class Token(BaseModel):
@@ -26,6 +26,7 @@ class UserResponse(BaseModel):
     username: str
     email: EmailStr
     role: UserRole
+    status: UserStatus
     created_at: datetime
 
 
@@ -57,6 +58,12 @@ class UserUpdate(BaseModel):
 
     username: str | None = None
     email: EmailStr | None = None
+
+
+class UserUpdateAsAdmin(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    status: UserStatus
 
 
 # AUTHORS

@@ -17,7 +17,7 @@ from app.schemas import (
     OrderCreate,
     OrderCreateInDB,
     OrderUpdate,
-    OrderUpdateInDB,
+    OrderUpdateInDB, UserUpdateAsAdmin,
 )
 from app.security import get_password_hash, verify_password, create_access_token
 from app.exceptions import (
@@ -61,22 +61,24 @@ async def register_user(db: AsyncSession, user: UserCreate) -> User:
     return await crud.create_user(db, user_in_db)
 
 
-async def update_user(db: AsyncSession, user_id: int, user: UserUpdate) -> User:
+async def update_user(db: AsyncSession, user_id: int, user: UserUpdate | UserUpdateAsAdmin) -> User:
     existing_user = await crud.get_user_by_id(db, user_id)
     if not existing_user:
         raise UserNotFoundError()
 
-    if user.username:
+    updated_data = user.model_dump(exclude_unset=True)
+
+    if "username" in updated_data:
         duplicate = await crud.get_user_by_username(db, user.username)
         if duplicate and duplicate.id != user_id:
             raise DuplicateFieldError("Username already exists")
 
-    if user.email:
+    if "email" in updated_data:
         duplicate = await crud.get_user_by_email(db, user.email)
         if duplicate and duplicate.id != user_id:
             raise DuplicateFieldError("Email already exists")
 
-    return await crud.update_user(db, user_id, user)
+    return await crud.update_user(db, user_id, updated_data)
 
 
 async def delete_user(db: AsyncSession, user_id: int) -> None:
