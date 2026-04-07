@@ -3,7 +3,7 @@ from datetime import datetime, date
 from decimal import Decimal
 from pydantic import BaseModel, EmailStr, ConfigDict, Field
 
-from app.models import UserRole, UserStatus, OrderStatus
+from app.models import UserRole, UserStatus, OrderStatus, DeliveryType
 
 
 class Token(BaseModel):
@@ -150,6 +150,7 @@ class OrderResponse(BaseModel):
     status: OrderStatus
     quantity: int = Field(..., gt=0)
     total_amount: Decimal
+    delivery_type: DeliveryType
     note: str | None = None
     created_at: datetime
 
@@ -166,6 +167,7 @@ class OrderCreate(BaseModel):
 
     book_id: int
     quantity: int = Field(..., gt=0)
+    delivery_type: DeliveryType = DeliveryType.STANDARD
     note: str | None = None
 
 

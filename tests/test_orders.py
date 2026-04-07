@@ -2,7 +2,7 @@ from decimal import Decimal
 from httpx import AsyncClient, Response
 from pytest import mark
 
-from app.models import Order, OrderStatus
+from app.models import Order, OrderStatus, DeliveryType
 from app.security import create_access_token
 from app.schemas import OrderResponse
 
@@ -188,6 +188,7 @@ async def test_create_order_success(client: AsyncClient, test_book, test_user):
     assert data["user_id"] == test_user.id
     assert data["book_id"] == test_book.id
     assert data["status"] == OrderStatus.PENDING
+    assert data["delivery_type"] == DeliveryType.STANDARD
     assert data["quantity"] == order["quantity"]
     assert Decimal(data["total_amount"]) == Decimal(test_book.price * order["quantity"])
     assert data["note"] == order["note"]
@@ -213,13 +214,16 @@ async def test_create_order_not_existed_book(client: AsyncClient, user_token):
     assert response.json()["detail"] == f"Book with id {order['book_id']} not found"
 
 
-@mark.parametrize("quantity", [0, -10])
-async def test_create_order_invalid_quantity(
-    client: AsyncClient, test_book, user_token, quantity
+@mark.parametrize(
+    ["field_name", "value"],
+    [("quantity", 0), ("quantity", -10), ("delivery_type", "test")],
+)
+async def test_create_order_invalid_data(
+    client: AsyncClient, test_book, user_token, field_name, value
 ):
     response = await client.post(
         "/api/v1/orders/me",
-        json={"book_id": test_book.id, "quantity": quantity, "note": "very important"},
+        json={"book_id": test_book.id, field_name: value},
         headers={"Authorization": f"Bearer {user_token}"},
     )
     assert response.status_code == 422
@@ -228,6 +232,7 @@ async def test_create_order_invalid_quantity(
 async def test_update_order_success(client: AsyncClient, test_order, admin_token):
     order_update = {
         "status": OrderStatus.PAID,
+        "delivery_type": DeliveryType.EXPRESS,
         "note": "test note",
     }
 
@@ -308,6 +313,21 @@ async def test_update_order_forbidden(client: AsyncClient, test_order, user_toke
     )
     assert response.status_code == 403
     assert response.json()["detail"] == "Admin permission required"
+
+
+@mark.parametrize(
+    ["field_name", "value"],
+    [("quantity", 0), ("quantity", -10), ("delivery_type", "test")],
+)
+async def test_update_order_invalid_data(
+    client: AsyncClient, test_book, admin_token, field_name, value
+):
+    response = await client.patch(
+        "/api/v1/orders/me",
+        json={field_name: value},
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert response.status_code == 422
 
 
 async def test_update_order_not_found(client: AsyncClient, admin_token):
