@@ -165,6 +165,27 @@ async def test_get_orders_paginated(client: AsyncClient, admin_token):
     assert data["offset"] == 2
 
 
+async def test_get_orders_filtered_empty(client: AsyncClient, admin_token):
+    response = await client.get(
+        "/api/v1/orders?priority__gt=10",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert response.status_code == 200
+    assert response.json()["items"] == []
+
+
+@mark.parametrize("filter_key", ["user_id", "book_id", "delivery_type", "status"])
+async def test_get_orders_filtered(
+    client: AsyncClient, test_order, admin_token, filter_key
+):
+    response = await client.get(
+        f"/api/v1/orders?{filter_key}={getattr(test_order, filter_key)}",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert response.status_code == 200
+    assert response.json()["total"] == 1
+
+
 async def test_get_orders_unauthorized(client: AsyncClient):
     response = await client.get(
         "/api/v1/orders",
@@ -174,7 +195,9 @@ async def test_get_orders_unauthorized(client: AsyncClient):
 
 
 @mark.parametrize("quantity", [1, 6, 21])
-async def test_create_order_success(client: AsyncClient, test_book, test_user, quantity):
+async def test_create_order_success(
+    client: AsyncClient, test_book, test_user, quantity
+):
     user_token = create_access_token(data={"id": test_user.id})
     order = {"book_id": test_book.id, "quantity": quantity, "note": "very important"}
 
