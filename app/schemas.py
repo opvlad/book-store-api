@@ -2,8 +2,9 @@ from typing import List
 from datetime import datetime, date
 from decimal import Decimal
 from pydantic import BaseModel, EmailStr, ConfigDict, Field
+from fastapi_filter.contrib.sqlalchemy import Filter
 
-from app.models import UserRole, UserStatus, OrderStatus, DeliveryType
+from app.models import UserRole, UserStatus, Order, OrderStatus, DeliveryType
 
 
 class Token(BaseModel):
@@ -139,6 +140,33 @@ class BookUpdate(BaseModel):
 
 
 # ORDERS
+
+
+class OrderFilter(Filter):
+    user_id: int | None = None
+    book_id: int | None = None
+    status: OrderStatus | None = None
+    delivery_type: DeliveryType | None = None
+
+    quantity__lt: int | None = None
+    quantity__lte: int | None = None
+    quantity__gt: int | None = None
+    quantity__gte: int | None = None
+
+    total_amount__lt: Decimal | None = None
+    total_amount__lte: Decimal | None = None
+    total_amount__gt: Decimal | None = None
+    total_amount__gte: Decimal | None = None
+
+    priority__lt: float | None = None
+    priority__lte: float | None = None
+    priority__gt: float | None = None
+    priority__gte: float | None = None
+
+    order_by: list[str] = ["+id"]
+
+    class Constants(Filter.Constants):
+        model = Order
 
 
 class OrderResponse(BaseModel):

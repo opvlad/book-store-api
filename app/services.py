@@ -21,6 +21,7 @@ from app.schemas import (
     OrderUpdate,
     OrderUpdateInDB,
     UserUpdateAsAdmin,
+    OrderFilter,
 )
 from app.exceptions import (
     PermissionDeniedError,
@@ -246,10 +247,15 @@ async def get_order(db: AsyncSession, order_id: int, user: User) -> Order:
 
 
 async def get_orders(
-    db: AsyncSession, limit: int, offset: int, user: User, admin_action: bool = False
+    db: AsyncSession,
+    limit: int,
+    offset: int,
+    user: User,
+    admin_action: bool = False,
+    filters: OrderFilter | None = None,
 ) -> tuple[int, list[Order]]:
     if admin_action:
-        return await crud.get_orders(db, limit, offset)
+        return await crud.get_orders(db, limit=limit, offset=offset, filters=filters)
 
     return await crud.get_orders(
         db,
@@ -276,7 +282,7 @@ async def create_order(db: AsyncSession, order: OrderCreate, user: User) -> Orde
         user_id=user.id,
         status=OrderStatus.PENDING,
         total_amount=total_amount,
-        priority=priority
+        priority=priority,
     )
     return await crud.create_order(db, order_create_in_db)
 
@@ -305,7 +311,9 @@ async def update_order(
         )
 
         order_update_in_db = OrderUpdateInDB(
-            **order_update.model_dump(exclude_unset=True), total_amount=total_amount, priority=priority
+            **order_update.model_dump(exclude_unset=True),
+            total_amount=total_amount,
+            priority=priority,
         )
 
         return await crud.update_order(db, order_id, order_update_in_db)

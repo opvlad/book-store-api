@@ -13,6 +13,7 @@ from app.schemas import (
     OrderCreateInDB,
     OrderUpdate,
     OrderUpdateInDB,
+    OrderFilter,
 )
 
 
@@ -162,14 +163,27 @@ async def get_order_by_id(db: AsyncSession, order_id: int) -> Order | None:
 
 
 async def get_orders(
-    db: AsyncSession, limit: int, offset: int, owner_id: int | None = None
+    db: AsyncSession,
+    limit: int,
+    offset: int,
+    owner_id: int | None = None,
+    filters: OrderFilter | None = None,
 ) -> tuple[int, list[Order]]:
     stmt = select(Order)
-    count_stmt = select(func.count(Order.id))
+    count_stmt = select(func.count())
 
     if owner_id:
         stmt = stmt.where(Order.user_id == owner_id)
         count_stmt = count_stmt.where(Order.user_id == owner_id)
+
+    if filters:
+        stmt = filters.filter(stmt)
+        stmt = filters.sort(stmt)
+
+        items = await db.execute(stmt.limit(limit).offset(offset))
+        total = await db.scalar(count_stmt.select_from(stmt.order_by(None).subquery()))
+
+        return total, list(items.scalars().all())
 
     items = await db.execute(stmt.order_by(Order.id).limit(limit).offset(offset))
     total = await db.scalar(count_stmt)

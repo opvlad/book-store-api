@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends
+from fastapi_filter import FilterDepends
 
 from app.dependencies import sessionDep, get_current_user, get_current_admin
 from app.models import User
 from app.schemas import (
+    OrderFilter,
     OrderResponse,
     OrderAdminResponse,
     OrderCreate,
@@ -39,7 +41,7 @@ async def get_my_orders(
     return {"total": total, "limit": limit, "offset": offset, "items": items}
 
 
-@router.post("/me", response_model=OrderResponse, status_code=201)
+@router.post("", response_model=OrderResponse, status_code=201)
 async def create_order(
     db: sessionDep, order: OrderCreate, user: User = Depends(get_current_user)
 ):
@@ -49,12 +51,13 @@ async def create_order(
 @router.get("", response_model=OrderAdminListPaginatedResponse)
 async def get_orders(
     db: sessionDep,
+    filters: OrderFilter = FilterDepends(OrderFilter),
     limit: int = 100,
     offset: int = 0,
     user: User = Depends(get_current_admin),
 ):
     total, items = await service_get_orders(
-        db, limit=limit, offset=offset, user=user, admin_action=True
+        db, limit=limit, offset=offset, user=user, admin_action=True, filters=filters
     )
     return {"total": total, "limit": limit, "offset": offset, "items": items}
 

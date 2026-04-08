@@ -179,7 +179,7 @@ async def test_create_order_success(client: AsyncClient, test_book, test_user, q
     order = {"book_id": test_book.id, "quantity": quantity, "note": "very important"}
 
     response = await client.post(
-        "/api/v1/orders/me",
+        "/api/v1/orders",
         json=order,
         headers={"Authorization": f"Bearer {user_token}"},
     )
@@ -196,7 +196,7 @@ async def test_create_order_success(client: AsyncClient, test_book, test_user, q
 
 async def test_create_order_unauthorized(client: AsyncClient, test_book):
     response = await client.post(
-        "/api/v1/orders/me",
+        "/api/v1/orders",
         json={"book_id": test_book.id, "quantity": 1, "note": "very important"},
     )
     assert response.status_code == 401
@@ -206,7 +206,7 @@ async def test_create_order_unauthorized(client: AsyncClient, test_book):
 async def test_create_order_not_existed_book(client: AsyncClient, user_token):
     order = {"book_id": 999, "quantity": 1, "note": "very important"}
     response = await client.post(
-        "/api/v1/orders/me",
+        "/api/v1/orders",
         json=order,
         headers={"Authorization": f"Bearer {user_token}"},
     )
@@ -222,7 +222,7 @@ async def test_create_order_invalid_data(
     client: AsyncClient, test_book, user_token, field_name, value
 ):
     response = await client.post(
-        "/api/v1/orders/me",
+        "/api/v1/orders",
         json={"book_id": test_book.id, field_name: value},
         headers={"Authorization": f"Bearer {user_token}"},
     )
