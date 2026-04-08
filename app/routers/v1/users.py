@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 
 from app.dependencies import sessionDep, get_current_user, get_current_admin
-from app.schemas import UserResponse, UserListPaginatedResponse, UserUpdate
+from app.schemas import UserResponse, UserListPaginatedResponse, UserUpdate, UserUpdateAsAdmin
 from app.models import User
 from app.exceptions import UserNotFoundError, DuplicateFieldError
 from app.services import (
@@ -20,7 +20,7 @@ async def read_profile(user: User = Depends(get_current_user)):
     return user
 
 
-@router.patch("/me/update", response_model=UserResponse)
+@router.patch("/me", response_model=UserResponse)
 async def update_profile(
     db: sessionDep, user_update: UserUpdate, user: User = Depends(get_current_user)
 ):
@@ -55,15 +55,13 @@ async def read_user_details(
 async def modify_user(
     db: sessionDep,
     user_id: int,
-    user_update: UserUpdate,
+    user_update: UserUpdateAsAdmin,
     _: User = Depends(get_current_admin),
 ):
     try:
         return await service_update_user(db, user_id, user_update)
     except UserNotFoundError:
         raise HTTPException(status_code=404, detail="User not found")
-    except DuplicateFieldError as e:
-        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.delete("/{user_id}", status_code=204)

@@ -15,6 +15,7 @@ from app.main import app
 from app.database import Base, get_db
 from app.models import UserRole, User, Author, Book, Order
 from app.security import get_password_hash, create_access_token
+from app.services import calculate_priority
 
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
@@ -150,6 +151,7 @@ async def test_order(db_session, test_user, test_book) -> Order:
         book_id=test_book.id,
         quantity=5,
         total_amount=Decimal(test_book.price * 5),
+        priority=calculate_priority(test_user.status, "standard", Decimal(test_book.price * 5))
     )
     db_session.add(test_order)
     await db_session.commit()
@@ -167,19 +169,3 @@ async def admin_token(db_session, test_admin) -> str:
     return create_access_token(data={"id": test_admin.id})
 
 
-@pytest.fixture()
-async def get_update_context(test_user, admin_token):
-    def _payload(action_type) -> dict:
-        if action_type == "user_action":
-            token = create_access_token(data={"id": test_user.id})
-            return {
-                "url": "/api/v1/users/me/update",
-                "headers": {"Authorization": f"Bearer {token}"},
-            }
-
-        return {
-            "url": f"/api/v1/users/{test_user.id}",
-            "headers": {"Authorization": f"Bearer {admin_token}"},
-        }
-
-    return _payload

@@ -1,11 +1,15 @@
 from fastapi import APIRouter, Depends
+from fastapi_filter import FilterDepends
 
 from app.dependencies import sessionDep, get_current_user, get_current_admin
 from app.models import User
 from app.schemas import (
+    OrderFilter,
     OrderResponse,
+    OrderAdminResponse,
     OrderCreate,
     OrderListPaginatedResponse,
+    OrderAdminListPaginatedResponse,
     OrderUpdate,
 )
 from app.services import (
@@ -37,27 +41,28 @@ async def get_my_orders(
     return {"total": total, "limit": limit, "offset": offset, "items": items}
 
 
-@router.get("", response_model=OrderListPaginatedResponse)
-async def get_orders(
-    db: sessionDep,
-    limit: int = 100,
-    offset: int = 0,
-    user: User = Depends(get_current_admin),
-):
-    total, items = await service_get_orders(
-        db, limit=limit, offset=offset, user=user, admin_action=True
-    )
-    return {"total": total, "limit": limit, "offset": offset, "items": items}
-
-
-@router.post("/me", response_model=OrderResponse, status_code=201)
+@router.post("", response_model=OrderResponse, status_code=201)
 async def create_order(
     db: sessionDep, order: OrderCreate, user: User = Depends(get_current_user)
 ):
     return await service_create_order(db, order, user)
 
 
-@router.get("/{order_id}", response_model=OrderResponse)
+@router.get("", response_model=OrderAdminListPaginatedResponse)
+async def get_orders(
+    db: sessionDep,
+    filters: OrderFilter = FilterDepends(OrderFilter),
+    limit: int = 100,
+    offset: int = 0,
+    user: User = Depends(get_current_admin),
+):
+    total, items = await service_get_orders(
+        db, limit=limit, offset=offset, user=user, admin_action=True, filters=filters
+    )
+    return {"total": total, "limit": limit, "offset": offset, "items": items}
+
+
+@router.get("/{order_id}", response_model=OrderAdminResponse)
 async def get_order_details(
     db: sessionDep, order_id: int, admin: User = Depends(get_current_admin)
 ):

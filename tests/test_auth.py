@@ -1,6 +1,6 @@
 from httpx import AsyncClient
 
-from app.models import UserRole
+from app.models import UserRole, UserStatus
 
 
 async def test_login_success(client: AsyncClient, test_user):
@@ -36,6 +36,7 @@ async def test_register_success(client: AsyncClient):
     assert data["username"] == user["username"]
     assert data["email"] == user["email"]
     assert data["role"] == UserRole.USER
+    assert data["status"] == UserStatus.REGULAR
 
 
 async def test_register_duplicated_username(test_user, client: AsyncClient):

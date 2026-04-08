@@ -2,8 +2,9 @@ from typing import List
 from datetime import datetime, date
 from decimal import Decimal
 from pydantic import BaseModel, EmailStr, ConfigDict, Field
+from fastapi_filter.contrib.sqlalchemy import Filter
 
-from app.models import UserRole, OrderStatus
+from app.models import UserRole, UserStatus, Order, OrderStatus, DeliveryType
 
 
 class Token(BaseModel):
@@ -26,6 +27,7 @@ class UserResponse(BaseModel):
     username: str
     email: EmailStr
     role: UserRole
+    status: UserStatus
     created_at: datetime
 
 
@@ -57,6 +59,12 @@ class UserUpdate(BaseModel):
 
     username: str | None = None
     email: EmailStr | None = None
+
+
+class UserUpdateAsAdmin(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    status: UserStatus
 
 
 # AUTHORS
@@ -134,16 +142,48 @@ class BookUpdate(BaseModel):
 # ORDERS
 
 
+class OrderFilter(Filter):
+    user_id: int | None = None
+    book_id: int | None = None
+    status: OrderStatus | None = None
+    delivery_type: DeliveryType | None = None
+
+    quantity__lt: int | None = None
+    quantity__lte: int | None = None
+    quantity__gt: int | None = None
+    quantity__gte: int | None = None
+
+    total_amount__lt: Decimal | None = None
+    total_amount__lte: Decimal | None = None
+    total_amount__gt: Decimal | None = None
+    total_amount__gte: Decimal | None = None
+
+    priority__lt: float | None = None
+    priority__lte: float | None = None
+    priority__gt: float | None = None
+    priority__gte: float | None = None
+
+    order_by: list[str] = ["+id"]
+
+    class Constants(Filter.Constants):
+        model = Order
+
+
 class OrderResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    user_id: int
     book_id: int
     status: OrderStatus
     quantity: int = Field(..., gt=0)
     total_amount: Decimal
+    delivery_type: DeliveryType
     note: str | None = None
+
+
+class OrderAdminResponse(OrderResponse):
+    user_id: int
+    priority: float
     created_at: datetime
 
 
@@ -154,11 +194,19 @@ class OrderListPaginatedResponse(BaseModel):
     items: List[OrderResponse]
 
 
+class OrderAdminListPaginatedResponse(BaseModel):
+    total: int
+    limit: int
+    offset: int
+    items: List[OrderAdminResponse]
+
+
 class OrderCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     book_id: int
     quantity: int = Field(..., gt=0)
+    delivery_type: DeliveryType = DeliveryType.STANDARD
     note: str | None = None
 
 
@@ -168,6 +216,7 @@ class OrderCreateInDB(OrderCreate):
     user_id: int
     status: OrderStatus
     total_amount: Decimal
+    priority: float
 
 
 class OrderUpdate(BaseModel):
@@ -183,3 +232,4 @@ class OrderUpdateInDB(OrderUpdate):
     model_config = ConfigDict(extra="forbid")
 
     total_amount: Decimal | None = None
+    priority: float | None = None
