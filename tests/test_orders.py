@@ -342,10 +342,10 @@ async def test_update_order_forbidden(client: AsyncClient, test_order, user_toke
     [("quantity", 0), ("quantity", -10), ("delivery_type", "test")],
 )
 async def test_update_order_invalid_data(
-    client: AsyncClient, test_book, admin_token, field_name, value
+    client: AsyncClient, test_order, test_book, admin_token, field_name, value
 ):
     response = await client.patch(
-        "/api/v1/orders/me",
+        f"/api/v1/orders/{test_order.id}",
         json={field_name: value},
         headers={"Authorization": f"Bearer {admin_token}"},
     )

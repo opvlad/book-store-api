@@ -189,9 +189,9 @@ async def test_user_update_success(
     assert response.json()["status"] == user_status
 
 
-async def test_user_update_unauthorized(client: AsyncClient):
+async def test_user_update_unauthorized(client: AsyncClient, test_user):
     response = await client.patch(
-        url="/api/v1/users/me",
+        f"/api/v1/users/{test_user.id}",
         json={"username": "new_username"},
     )
     assert response.status_code == 401
