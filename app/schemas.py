@@ -204,8 +204,8 @@ class OrderAdminListPaginatedResponse(BaseModel):
 class OrderCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    book_id: int
-    quantity: int = Field(..., gt=0)
+    book_id: list[int]
+    quantity: list[int] = Field(..., gt=0)
     delivery_type: DeliveryType = DeliveryType.STANDARD
     note: str | None = None
 
