@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 
 from app.exceptions import (
     PermissionDeniedError,
+    ZeroStockQuantityError,
     EntityNotFoundError,
     AuthorNotFoundError,
     AuthorIsNotAdultError,
@@ -13,6 +14,10 @@ from app.exceptions import (
 
 async def permission_denied_handler(request: Request, exc: PermissionDeniedError):
     return JSONResponse(status_code=403, content={"detail": "Permission denied"})
+
+
+async def zero_stock_quantity_handler(request: Request, exc: ZeroStockQuantityError):
+    return JSONResponse(status_code=400, content={"detail": str(exc)})
 
 
 async def entity_not_found_handler(request: Request, exc: EntityNotFoundError):

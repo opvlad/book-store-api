@@ -237,6 +237,16 @@ async def test_create_order_not_existed_book(client: AsyncClient, user_token):
     assert response.json()["detail"] == f"Book with id {order['book_id']} not found"
 
 
+async def test_order_create_zero_stock_quantity(client: AsyncClient, user_token, test_book_zero_stock_qty):
+    response = await client.post(
+        "/api/v1/orders",
+        json={"book_id": test_book_zero_stock_qty.id, "quantity": 2},
+        headers={"Authorization": f"Bearer {user_token}"},
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"] == f"Book with id {test_book_zero_stock_qty.id} has zero stock quantity"
+
+
 @mark.parametrize(
     ["field_name", "value"],
     [("quantity", 0), ("quantity", -10), ("delivery_type", "test")],

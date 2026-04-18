@@ -8,6 +8,7 @@ from app.routers.v1.orders import router as orders_router
 
 from app.exceptions import (
     PermissionDeniedError,
+    ZeroStockQuantityError,
     EntityNotFoundError,
     AuthorNotFoundError,
     AuthorIsNotAdultError,
@@ -16,6 +17,7 @@ from app.exceptions import (
 )
 from app.handlers import (
     permission_denied_handler,
+    zero_stock_quantity_handler,
     entity_not_found_handler,
     author_not_found_handler,
     author_is_not_adult,
@@ -35,6 +37,7 @@ app.include_router(orders_router, prefix="/api/v1/orders", tags=["orders"])
 
 
 app.add_exception_handler(PermissionDeniedError, permission_denied_handler)
+app.add_exception_handler(ZeroStockQuantityError, zero_stock_quantity_handler)
 app.add_exception_handler(EntityNotFoundError, entity_not_found_handler)
 app.add_exception_handler(AuthorNotFoundError, author_not_found_handler)
 app.add_exception_handler(AuthorIsNotAdultError, author_is_not_adult)
