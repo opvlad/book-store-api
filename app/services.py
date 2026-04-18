@@ -25,6 +25,7 @@ from app.schemas import (
 )
 from app.exceptions import (
     PermissionDeniedError,
+    ZeroStockQuantityError,
     EntityNotFoundError,
     UserNotFoundError,
     DuplicateFieldError,
@@ -269,6 +270,9 @@ async def create_order(db: AsyncSession, order: OrderCreate, user: User) -> Orde
     book = await crud.get_book_by_id(db, order.book_id)
     if not book:
         raise EntityNotFoundError(entity_name="Book", entity_id=order.book_id)
+
+    if book.stock_quantity == 0:
+        raise ZeroStockQuantityError(book_id=book.id)
 
     total_amount = Decimal(book.price * order.quantity)
     priority = calculate_priority(

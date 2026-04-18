@@ -145,13 +145,30 @@ async def test_other_book(db_session, test_author) -> Book:
 
 
 @pytest.fixture()
+async def test_book_zero_stock_qty(db_session, test_author) -> Book:
+    test_book = Book(
+        title="Test Book",
+        description="Test description",
+        price=Decimal("100"),
+        stock_quantity=0,
+        author_id=test_author.id,
+    )
+    db_session.add(test_book)
+    await db_session.commit()
+    await db_session.refresh(test_book)
+    return test_book
+
+
+@pytest.fixture()
 async def test_order(db_session, test_user, test_book) -> Order:
     test_order = Order(
         user_id=test_user.id,
         book_id=test_book.id,
         quantity=5,
         total_amount=Decimal(test_book.price * 5),
-        priority=calculate_priority(test_user.status, "standard", Decimal(test_book.price * 5))
+        priority=calculate_priority(
+            test_user.status, "standard", Decimal(test_book.price * 5)
+        ),
     )
     db_session.add(test_order)
     await db_session.commit()
@@ -167,5 +184,3 @@ async def user_token(db_session, test_user) -> str:
 @pytest.fixture()
 async def admin_token(db_session, test_admin) -> str:
     return create_access_token(data={"id": test_admin.id})
-
-
