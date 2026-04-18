@@ -201,11 +201,17 @@ class OrderAdminListPaginatedResponse(BaseModel):
     items: List[OrderAdminResponse]
 
 
+class OrderItems(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    book_id: int
+    quantity: int = Field(..., gt=0)
+
+
 class OrderCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    book_id: list[int]
-    quantity: list[int] = Field(..., gt=0)
+    items: list[OrderItems] = Field(..., min_length=1)
     delivery_type: DeliveryType = DeliveryType.STANDARD
     note: str | None = None
 

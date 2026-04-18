@@ -1,5 +1,6 @@
 from datetime import datetime, date
 from decimal import Decimal
+import asyncio
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -25,7 +26,7 @@ from app.schemas import (
 )
 from app.exceptions import (
     PermissionDeniedError,
-    ZeroStockQuantityError,
+    InsufficientStockQuantityError,
     EntityNotFoundError,
     UserNotFoundError,
     DuplicateFieldError,
@@ -267,14 +268,23 @@ async def get_orders(
 
 
 async def create_order(db: AsyncSession, order: OrderCreate, user: User) -> Order:
-    book = await crud.get_book_by_id(db, order.book_id)
-    if not book:
-        raise EntityNotFoundError(entity_name="Book", entity_id=order.book_id)
+    items = order.model_dump()["items"]
+    items_map = {item["book_id"]: item["quantity"] for item in items}
 
-    if book.stock_quantity == 0:
-        raise ZeroStockQuantityError(book_id=book.id)
+    books_task = [crud.get_book_by_id(db, id) for id in items_map.keys()]
+    books = await asyncio.gather(*books_task)
 
-    total_amount = Decimal(book.price * order.quantity)
+    books_map = dict(zip(items_map.keys(), books))
+
+    not_existed_book_ids = [id for id, book in books_map.items() if book is None]
+    if not_existed_book_ids:
+        raise EntityNotFoundError(entity_name="Book", entity_ids=not_existed_book_ids)
+
+    insufficient_stock_qty_book_ids = [id for id, book in books_map.items() if book.stock_quantity < items_map[id]]
+    if insufficient_stock_qty_book_ids:
+        raise InsufficientStockQuantityError(book_ids=insufficient_stock_qty_book_ids)
+
+    total_amount = Decimal(sum([items_map[id] * book.price for id, book in books_map.items()]))
     priority = calculate_priority(
         user_status=user.status,
         delivery_type=order.delivery_type,
@@ -303,7 +313,7 @@ async def update_order(
         book = await crud.get_book_by_id(db, book_id)
 
         if not book:
-            raise EntityNotFoundError(entity_name="Book", entity_id=book_id)
+            raise EntityNotFoundError(entity_name="Book", entity_ids=book_id)
 
         quantity = order_update.quantity if order_update.quantity else order.quantity
 
