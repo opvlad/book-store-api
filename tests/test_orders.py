@@ -174,7 +174,7 @@ async def test_get_orders_filtered_empty(client: AsyncClient, admin_token):
     assert response.json()["items"] == []
 
 
-@mark.parametrize("filter_key", ["user_id", "book_id", "delivery_type", "status"])
+@mark.parametrize("filter_key", ["user_id", "delivery_type", "status"])
 async def test_get_orders_filtered(
     client: AsyncClient, test_order, admin_token, filter_key
 ):
@@ -196,10 +196,14 @@ async def test_get_orders_unauthorized(client: AsyncClient):
 
 @mark.parametrize("quantity", [1, 6, 21])
 async def test_create_order_success(
-    client: AsyncClient, test_book, test_user, quantity
+    client: AsyncClient, test_book, test_other_book, test_user, quantity
 ):
     user_token = create_access_token(data={"id": test_user.id})
-    order = {"book_id": test_book.id, "quantity": quantity, "note": "very important"}
+    items = [
+        {"book_id": test_book.id, "quantity": quantity},
+        {"book_id": test_other_book.id, "quantity": quantity},
+    ]
+    order = {"items": items, "note": "very important"}
 
     response = await client.post(
         "/api/v1/orders",
@@ -209,11 +213,13 @@ async def test_create_order_success(
     assert response.status_code == 201
 
     data = response.json()
-    assert data["book_id"] == test_book.id
+    assert data["items"] == items
     assert data["status"] == OrderStatus.PENDING
     assert data["delivery_type"] == DeliveryType.STANDARD
-    assert data["quantity"] == order["quantity"]
-    assert Decimal(data["total_amount"]) == Decimal(test_book.price * order["quantity"])
+    assert Decimal(data["total_amount"]) == Decimal(
+        test_book.price * items[0]["quantity"]
+        + test_other_book.price * items[1]["quantity"]
+    )
     assert data["note"] == order["note"]
 
 
@@ -227,24 +233,35 @@ async def test_create_order_unauthorized(client: AsyncClient, test_book):
 
 
 async def test_create_order_not_existed_book(client: AsyncClient, user_token):
-    order = {"book_id": 999, "quantity": 1, "note": "very important"}
+    order = {
+        "items": [
+            {"book_id": 999, "quantity": 5},
+        ],
+        "note": "very important",
+    }
     response = await client.post(
         "/api/v1/orders",
         json=order,
         headers={"Authorization": f"Bearer {user_token}"},
     )
     assert response.status_code == 400
-    assert response.json()["detail"] == f"Book with id {order['book_id']} not found"
+    assert str(order["items"][0]["book_id"]) in response.json()["detail"]
 
 
-async def test_order_create_zero_stock_quantity(client: AsyncClient, user_token, test_book_zero_stock_qty):
+async def test_order_create_zero_stock_quantity(
+    client: AsyncClient, user_token, test_book_zero_stock_qty
+):
     response = await client.post(
         "/api/v1/orders",
-        json={"book_id": test_book_zero_stock_qty.id, "quantity": 2},
+        json={
+            "items": [
+                {"book_id": test_book_zero_stock_qty.id, "quantity": 5},
+            ]
+        },
         headers={"Authorization": f"Bearer {user_token}"},
     )
     assert response.status_code == 400
-    assert response.json()["detail"] == f"Book with id {test_book_zero_stock_qty.id} has zero stock quantity"
+    assert str(test_book_zero_stock_qty.id) in response.json()["detail"]
 
 
 @mark.parametrize(
@@ -265,7 +282,6 @@ async def test_create_order_invalid_data(
 async def test_update_order_success(client: AsyncClient, test_order, admin_token):
     order_update = {
         "status": OrderStatus.PAID,
-        "note": "test note",
     }
 
     response = await client.patch(
@@ -277,55 +293,6 @@ async def test_update_order_success(client: AsyncClient, test_order, admin_token
 
     data = response.json()
     assert data["status"] == order_update["status"]
-    assert data["note"] == order_update["note"]
-
-
-async def test_update_order_only_quantity(
-    client: AsyncClient, test_order, test_book, admin_token
-):
-    order_update = {"quantity": 7}
-
-    response = await client.patch(
-        f"/api/v1/orders/{test_order.id}",
-        json=order_update,
-        headers={"Authorization": f"Bearer {admin_token}"},
-    )
-    assert response.status_code == 200
-    assert Decimal(response.json()["total_amount"]) == Decimal(
-        order_update["quantity"] * test_book.price
-    )
-
-
-async def test_update_order_only_book(
-    client: AsyncClient, test_order, test_other_book, admin_token
-):
-    order_update = {"book_id": test_other_book.id}
-
-    response = await client.patch(
-        f"/api/v1/orders/{test_order.id}",
-        json=order_update,
-        headers={"Authorization": f"Bearer {admin_token}"},
-    )
-    assert response.status_code == 200
-    assert Decimal(response.json()["total_amount"]) == Decimal(
-        test_order.quantity * test_other_book.price
-    )
-
-
-async def test_update_order_only_quantity_and_book(
-    client: AsyncClient, test_order, test_other_book, admin_token
-):
-    order_update = {"book_id": test_other_book.id, "quantity": 7}
-
-    response = await client.patch(
-        f"/api/v1/orders/{test_order.id}",
-        json=order_update,
-        headers={"Authorization": f"Bearer {admin_token}"},
-    )
-    assert response.status_code == 200
-    assert Decimal(response.json()["total_amount"]) == Decimal(
-        order_update["quantity"] * test_other_book.price
-    )
 
 
 async def test_update_order_unauthorized(client: AsyncClient, test_order):
@@ -347,16 +314,13 @@ async def test_update_order_forbidden(client: AsyncClient, test_order, user_toke
     assert response.json()["detail"] == "Admin permission required"
 
 
-@mark.parametrize(
-    ["field_name", "value"],
-    [("quantity", 0), ("quantity", -10), ("delivery_type", "test")],
-)
-async def test_update_order_invalid_data(
-    client: AsyncClient, test_order, test_book, admin_token, field_name, value
+@mark.parametrize("status", ["test", 123])
+async def test_update_order_invalid_status(
+    client: AsyncClient, test_order, admin_token, status
 ):
     response = await client.patch(
         f"/api/v1/orders/{test_order.id}",
-        json={field_name: value},
+        json={"status": status},
         headers={"Authorization": f"Bearer {admin_token}"},
     )
     assert response.status_code == 422
@@ -365,23 +329,11 @@ async def test_update_order_invalid_data(
 async def test_update_order_not_found(client: AsyncClient, admin_token):
     response = await client.patch(
         "/api/v1/orders/999",
-        json={"note": "new note"},
+        json={"status": OrderStatus.SHIPPED},
         headers={"Authorization": f"Bearer {admin_token}"},
     )
     assert response.status_code == 404
     assert response.json()["detail"] == "Order not found"
-
-
-async def test_update_order_not_existed_book(
-    client: AsyncClient, test_order, admin_token
-):
-    response = await client.patch(
-        f"/api/v1/orders/{test_order.id}",
-        json={"book_id": 999},
-        headers={"Authorization": f"Bearer {admin_token}"},
-    )
-    assert response.status_code == 400
-    assert response.json()["detail"] == "Book with id 999 not found"
 
 
 async def test_delete_order_success(client: AsyncClient, test_order, admin_token):

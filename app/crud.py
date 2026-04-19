@@ -5,14 +5,12 @@ from pydantic import EmailStr
 from app.models import User, Author, Book, Order
 from app.schemas import (
     UserCreateInDB,
-    UserUpdate,
     AuthorCreate,
     AuthorUpdate,
     BookCreate,
     BookUpdate,
     OrderCreateInDB,
     OrderUpdate,
-    OrderUpdateInDB,
     OrderFilter,
 )
 
@@ -121,6 +119,11 @@ async def get_book_by_id(db: AsyncSession, book_id: int) -> Book | None:
     return await db.get(Book, book_id)
 
 
+async def get_books_by_ids(db: AsyncSession, book_ids: list[int]) -> list[Book]:
+    result = await db.execute(select(Book).where(Book.id.in_(book_ids)))
+    return result.scalars().all()
+
+
 async def get_books(
     db: AsyncSession, limit: int, offset: int
 ) -> tuple[int, list[Book]]:
@@ -200,7 +203,7 @@ async def create_order(db: AsyncSession, order: OrderCreateInDB) -> Order:
 
 
 async def update_order(
-    db: AsyncSession, order_id: int, order_update: OrderUpdateInDB
+    db: AsyncSession, order_id: int, order_update: OrderUpdate
 ) -> Order:
     db_order = await get_order_by_id(db, order_id)
 
