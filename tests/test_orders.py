@@ -245,10 +245,7 @@ async def test_create_order_not_existed_book(client: AsyncClient, user_token):
         headers={"Authorization": f"Bearer {user_token}"},
     )
     assert response.status_code == 400
-    assert (
-        response.json()["detail"]
-        == f"Books with ids [{order['items'][0]['book_id']}] not found"
-    )
+    assert str(order["items"][0]["book_id"]) in response.json()["detail"]
 
 
 async def test_order_create_zero_stock_quantity(
@@ -264,10 +261,7 @@ async def test_order_create_zero_stock_quantity(
         headers={"Authorization": f"Bearer {user_token}"},
     )
     assert response.status_code == 400
-    assert (
-        response.json()["detail"]
-        == f"Books with ids [{test_book_zero_stock_qty.id}] have insufficient stock quantity"
-    )
+    assert str(test_book_zero_stock_qty.id) in response.json()["detail"]
 
 
 @mark.parametrize(

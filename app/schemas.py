@@ -164,7 +164,7 @@ class OrderFilter(Filter):
 
 
 class OrderItems(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(extra="forbid")
 
     book_id: int
     quantity: int = Field(..., gt=0)

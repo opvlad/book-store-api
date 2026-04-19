@@ -270,12 +270,10 @@ async def create_order(db: AsyncSession, order: OrderCreate, user: User) -> Orde
     items = order.model_dump()["items"]
     items_map = {item["book_id"]: item["quantity"] for item in items}
 
-    books_task = [crud.get_book_by_id(db, id) for id in items_map.keys()]
-    books = await asyncio.gather(*books_task)
+    books = await crud.get_books_by_ids(db, items_map.keys())
+    books_map = {book.id: book for book in books}
 
-    books_map = dict(zip(items_map.keys(), books))
-
-    not_existed_book_ids = [id for id, book in books_map.items() if book is None]
+    not_existed_book_ids = items_map.keys() - books_map.keys()
     if not_existed_book_ids:
         raise EntityNotFoundError(entity_name="Book", entity_ids=not_existed_book_ids)
 

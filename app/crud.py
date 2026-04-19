@@ -119,6 +119,11 @@ async def get_book_by_id(db: AsyncSession, book_id: int) -> Book | None:
     return await db.get(Book, book_id)
 
 
+async def get_books_by_ids(db: AsyncSession, book_ids: list[int]) -> list[Book]:
+    result = await db.execute(select(Book).where(Book.id.in_(book_ids)))
+    return result.scalars().all()
+
+
 async def get_books(
     db: AsyncSession, limit: int, offset: int
 ) -> tuple[int, list[Book]]:
