@@ -2,9 +2,8 @@ from enum import StrEnum
 from decimal import Decimal
 from datetime import date, datetime, UTC
 
-from sqlalchemy import String, Text, Identity, ForeignKey, Numeric, DateTime, func, Enum
+from sqlalchemy import String, Text, Identity, ForeignKey, Numeric, DateTime, func, Enum, JSON
 from sqlalchemy.orm import mapped_column, Mapped, relationship
-from sqlalchemy.dialects.postgresql import JSONB
 
 from app.database import Base
 
@@ -105,7 +104,7 @@ class Order(Base):
 
     id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    items = mapped_column(JSONB)
+    items = mapped_column(JSON)
     status: Mapped[OrderStatus] = mapped_column(
         Enum(
             OrderStatus,

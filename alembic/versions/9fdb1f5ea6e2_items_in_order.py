@@ -19,13 +19,13 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column('orders', sa.Column('items', postgresql.JSONB(astext_type=sa.Text())))
+    op.add_column('orders', sa.Column('items', postgresql.JSON(astext_type=sa.Text())))
 
     op.execute(
         """
         UPDATE orders
-        SET items = jsonb_build_array(
-            jsonb_build_object(
+        SET items = json_build_array(
+            json_build_object(
                 'book_id', book_id, 'quantity', quantity
             )
         )
