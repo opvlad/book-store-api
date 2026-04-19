@@ -5,14 +5,12 @@ from pydantic import EmailStr
 from app.models import User, Author, Book, Order
 from app.schemas import (
     UserCreateInDB,
-    UserUpdate,
     AuthorCreate,
     AuthorUpdate,
     BookCreate,
     BookUpdate,
     OrderCreateInDB,
     OrderUpdate,
-    OrderUpdateInDB,
     OrderFilter,
 )
 
@@ -200,7 +198,7 @@ async def create_order(db: AsyncSession, order: OrderCreateInDB) -> Order:
 
 
 async def update_order(
-    db: AsyncSession, order_id: int, order_update: OrderUpdateInDB
+    db: AsyncSession, order_id: int, order_update: OrderUpdate
 ) -> Order:
     db_order = await get_order_by_id(db, order_id)
 

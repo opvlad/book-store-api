@@ -221,13 +221,4 @@ class OrderCreateInDB(OrderCreate):
 class OrderUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    items: list[OrderItems] | None = None
-    status: OrderStatus | None = None
-    note: str | None = None
-
-
-class OrderUpdateInDB(OrderUpdate):
-    model_config = ConfigDict(extra="forbid")
-
-    total_amount: Decimal | None = None
-    priority: float | None = None
+    status: OrderStatus

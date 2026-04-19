@@ -20,7 +20,6 @@ from app.schemas import (
     OrderCreate,
     OrderCreateInDB,
     OrderUpdate,
-    OrderUpdateInDB,
     UserUpdateAsAdmin,
     OrderFilter,
 )
@@ -280,11 +279,15 @@ async def create_order(db: AsyncSession, order: OrderCreate, user: User) -> Orde
     if not_existed_book_ids:
         raise EntityNotFoundError(entity_name="Book", entity_ids=not_existed_book_ids)
 
-    insufficient_stock_qty_book_ids = [id for id, book in books_map.items() if book.stock_quantity < items_map[id]]
+    insufficient_stock_qty_book_ids = [
+        id for id, book in books_map.items() if book.stock_quantity < items_map[id]
+    ]
     if insufficient_stock_qty_book_ids:
         raise InsufficientStockQuantityError(book_ids=insufficient_stock_qty_book_ids)
 
-    total_amount = Decimal(sum([items_map[id] * book.price for id, book in books_map.items()]))
+    total_amount = Decimal(
+        sum([items_map[id] * book.price for id, book in books_map.items()])
+    )
     priority = calculate_priority(
         user_status=user.status,
         delivery_type=order.delivery_type,
@@ -308,35 +311,7 @@ async def update_order(
     if not order:
         raise OrderNotFoundError()
 
-    if order_update.book_id or order_update.quantity:
-        book_id = order_update.book_id if order_update.book_id else order.book_id
-        book = await crud.get_book_by_id(db, book_id)
-
-        if not book:
-            raise EntityNotFoundError(entity_name="Book", entity_ids=book_id)
-
-        quantity = order_update.quantity if order_update.quantity else order.quantity
-
-        total_amount = Decimal(book.price * quantity)
-        priority = calculate_priority(
-            user_status=order.user.status,
-            delivery_type=order.delivery_type,
-            order_amount=total_amount,
-        )
-
-        order_update_in_db = OrderUpdateInDB(
-            **order_update.model_dump(exclude_unset=True),
-            total_amount=total_amount,
-            priority=priority,
-        )
-
-        return await crud.update_order(db, order_id, order_update_in_db)
-
-    return await crud.update_order(
-        db,
-        order_id,
-        OrderUpdateInDB(**order_update.model_dump(exclude_unset=True)),
-    )
+    return await crud.update_order(db, order_id, order_update)
 
 
 async def delete_order(db: AsyncSession, order_id: int) -> None:
