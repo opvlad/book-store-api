@@ -174,7 +174,7 @@ async def test_get_orders_filtered_empty(client: AsyncClient, admin_token):
     assert response.json()["items"] == []
 
 
-@mark.parametrize("filter_key", ["user_id", "book_id", "delivery_type", "status"])
+@mark.parametrize("filter_key", ["user_id", "delivery_type", "status"])
 async def test_get_orders_filtered(
     client: AsyncClient, test_order, admin_token, filter_key
 ):
@@ -196,10 +196,14 @@ async def test_get_orders_unauthorized(client: AsyncClient):
 
 @mark.parametrize("quantity", [1, 6, 21])
 async def test_create_order_success(
-    client: AsyncClient, test_book, test_user, quantity
+    client: AsyncClient, test_book, test_other_book, test_user, quantity
 ):
     user_token = create_access_token(data={"id": test_user.id})
-    order = {"book_id": test_book.id, "quantity": quantity, "note": "very important"}
+    items = [
+        {"book_id": test_book.id, "quantity": quantity},
+        {"book_id": test_other_book.id, "quantity": quantity},
+    ]
+    order = {"items": items, "note": "very important"}
 
     response = await client.post(
         "/api/v1/orders",
@@ -209,11 +213,13 @@ async def test_create_order_success(
     assert response.status_code == 201
 
     data = response.json()
-    assert data["book_id"] == test_book.id
+    assert data["items"] == items
     assert data["status"] == OrderStatus.PENDING
     assert data["delivery_type"] == DeliveryType.STANDARD
-    assert data["quantity"] == order["quantity"]
-    assert Decimal(data["total_amount"]) == Decimal(test_book.price * order["quantity"])
+    assert Decimal(data["total_amount"]) == Decimal(
+        test_book.price * items[0]["quantity"]
+        + test_other_book.price * items[1]["quantity"]
+    )
     assert data["note"] == order["note"]
 
 
@@ -227,24 +233,41 @@ async def test_create_order_unauthorized(client: AsyncClient, test_book):
 
 
 async def test_create_order_not_existed_book(client: AsyncClient, user_token):
-    order = {"book_id": 999, "quantity": 1, "note": "very important"}
+    order = {
+        "items": [
+            {"book_id": 999, "quantity": 5},
+        ],
+        "note": "very important",
+    }
     response = await client.post(
         "/api/v1/orders",
         json=order,
         headers={"Authorization": f"Bearer {user_token}"},
     )
     assert response.status_code == 400
-    assert response.json()["detail"] == f"Book with id {order['book_id']} not found"
+    assert (
+        response.json()["detail"]
+        == f"Books with ids [{order['items'][0]['book_id']}] not found"
+    )
 
 
-async def test_order_create_zero_stock_quantity(client: AsyncClient, user_token, test_book_zero_stock_qty):
+async def test_order_create_zero_stock_quantity(
+    client: AsyncClient, user_token, test_book_zero_stock_qty
+):
     response = await client.post(
         "/api/v1/orders",
-        json={"book_id": test_book_zero_stock_qty.id, "quantity": 2},
+        json={
+            "items": [
+                {"book_id": test_book_zero_stock_qty.id, "quantity": 5},
+            ]
+        },
         headers={"Authorization": f"Bearer {user_token}"},
     )
     assert response.status_code == 400
-    assert response.json()["detail"] == f"Book with id {test_book_zero_stock_qty.id} has zero stock quantity"
+    assert (
+        response.json()["detail"]
+        == f"Books with ids [{test_book_zero_stock_qty.id}] have insufficient stock quantity"
+    )
 
 
 @mark.parametrize(

@@ -120,7 +120,7 @@ async def test_book(db_session, test_author) -> Book:
         title="Test Book",
         description="Test description",
         price=Decimal("100"),
-        stock_quantity=10,
+        stock_quantity=100,
         author_id=test_author.id,
     )
     db_session.add(test_book)
@@ -135,7 +135,7 @@ async def test_other_book(db_session, test_author) -> Book:
         title="Other Book",
         description="Other description",
         price=Decimal("50.2"),
-        stock_quantity=5,
+        stock_quantity=100,
         author_id=test_author.id,
     )
     db_session.add(test_book)
@@ -163,8 +163,9 @@ async def test_book_zero_stock_qty(db_session, test_author) -> Book:
 async def test_order(db_session, test_user, test_book) -> Order:
     test_order = Order(
         user_id=test_user.id,
-        book_id=test_book.id,
-        quantity=5,
+        items=[
+            {"book_id": test_book.id, "quantity": 5},
+        ],
         total_amount=Decimal(test_book.price * 5),
         priority=calculate_priority(
             test_user.status, "standard", Decimal(test_book.price * 5)
