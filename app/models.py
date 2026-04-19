@@ -4,6 +4,7 @@ from datetime import date, datetime, UTC
 
 from sqlalchemy import String, Text, Identity, ForeignKey, Numeric, DateTime, func, Enum
 from sqlalchemy.orm import mapped_column, Mapped, relationship
+from sqlalchemy.dialects.postgresql import JSONB
 
 from app.database import Base
 
@@ -104,7 +105,7 @@ class Order(Base):
 
     id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    book_id: Mapped[int] = mapped_column(ForeignKey("books.id"))
+    items = mapped_column(JSONB)
     status: Mapped[OrderStatus] = mapped_column(
         Enum(
             OrderStatus,
@@ -113,7 +114,6 @@ class Order(Base):
         default=OrderStatus.PENDING,
         server_default="pending",
     )
-    quantity: Mapped[int]
     total_amount: Mapped[Decimal] = mapped_column(Numeric(precision=10, scale=2))
     delivery_type: Mapped[DeliveryType] = mapped_column(
         Enum(
@@ -132,4 +132,3 @@ class Order(Base):
     )
 
     user: Mapped["User"] = relationship(back_populates="orders", lazy="joined")
-    book: Mapped["Book"] = relationship(lazy="joined")
