@@ -90,7 +90,7 @@ def upgrade() -> None:
         "orders",
         sa.Column("id", sa.Integer(), sa.Identity(always=True), nullable=False),
         sa.Column("user_id", sa.Integer(), nullable=False),
-        sa.Column("items", sa.dialects.postgresql.JSONB(), nullable=False),
+        sa.Column("book_id", sa.Integer(), nullable=False),
         sa.Column(
             "status",
             sa.Enum(
@@ -104,6 +104,7 @@ def upgrade() -> None:
             server_default="pending",
             nullable=False,
         ),
+        sa.Column("quantity", sa.Integer(), nullable=False),
         sa.Column("total_amount", sa.Numeric(precision=10, scale=2), nullable=False),
         sa.Column(
             "delivery_type",
@@ -118,6 +119,10 @@ def upgrade() -> None:
             sa.DateTime(timezone=True),
             nullable=False,
             server_default=sa.func.now(),
+        ),
+        sa.ForeignKeyConstraint(
+            ["book_id"],
+            ["books.id"],
         ),
         sa.ForeignKeyConstraint(
             ["user_id"],

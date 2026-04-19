@@ -144,14 +144,8 @@ class BookUpdate(BaseModel):
 
 class OrderFilter(Filter):
     user_id: int | None = None
-    book_id: int | None = None
     status: OrderStatus | None = None
     delivery_type: DeliveryType | None = None
-
-    quantity__lt: int | None = None
-    quantity__lte: int | None = None
-    quantity__gt: int | None = None
-    quantity__gte: int | None = None
 
     total_amount__lt: Decimal | None = None
     total_amount__lte: Decimal | None = None
@@ -169,13 +163,19 @@ class OrderFilter(Filter):
         model = Order
 
 
+class OrderItems(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    book_id: int
+    quantity: int = Field(..., gt=0)
+
+
 class OrderResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    book_id: int
+    items: List[OrderItems]
     status: OrderStatus
-    quantity: int = Field(..., gt=0)
     total_amount: Decimal
     delivery_type: DeliveryType
     note: str | None = None
@@ -201,13 +201,6 @@ class OrderAdminListPaginatedResponse(BaseModel):
     items: List[OrderAdminResponse]
 
 
-class OrderItems(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    book_id: int
-    quantity: int = Field(..., gt=0)
-
-
 class OrderCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -228,8 +221,7 @@ class OrderCreateInDB(OrderCreate):
 class OrderUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    book_id: int | None = None
-    quantity: int | None = Field(default=None, gt=0)
+    items: list[OrderItems] | None = None
     status: OrderStatus | None = None
     note: str | None = None
 
