@@ -7,9 +7,10 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     AsyncSession,
 )
-from cashews import cache
 from datetime import date
 from decimal import Decimal
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.inmemory import InMemoryBackend
 
 from app.main import app
 from app.database import Base, get_db
@@ -50,15 +51,15 @@ async def client(db_session) -> AsyncGenerator[AsyncClient, None]:
     app.dependency_overrides.clear()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(autouse=True, scope="session")
 async def setup_cache():
-    cache.set_config("mem://")
+    FastAPICache.init(InMemoryBackend())
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(autouse=True, scope="function")
 async def clear_cache():
-    yield
-    await cache.clear()
+    backed = FastAPICache().get_backend()
+    backed._store.clear() # noqa
 
 
 @pytest.fixture()

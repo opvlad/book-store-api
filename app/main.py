@@ -2,8 +2,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi_cache import FastAPICache
-from fastapi_cache.backends.redis import RedisCache
-from redis.asyncio import redis
+from fastapi_cache.backends.redis import RedisBackend
+import redis.asyncio as redis
 
 from app.routers.v1.users import router as users_router
 from app.routers.v1.auth import router as auth_router
@@ -33,7 +33,10 @@ from app.handlers import (
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    pass
+    redis_client = redis.from_url("redis://localhost", decode_responses=False)
+    FastAPICache.init(RedisBackend(redis_client), prefix="bookstore")
+    yield
+    await redis_client.close()
 
 
 app = FastAPI(lifespan=lifespan)

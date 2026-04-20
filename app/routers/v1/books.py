@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Depends
+from fastapi_cache import FastAPICache
+from fastapi_cache.decorator import cache
 
 from app.dependencies import sessionDep, get_current_admin
 from app.models import User
@@ -11,6 +13,27 @@ from app.services import (
 )
 from app.schemas import BookResponse, BookListPaginatedResponse, BookCreate, BookUpdate
 
+from fastapi import Request, Response
+
+
+def bookstore_key_builder(
+        func,
+        namespace: str = "",
+        *,
+        request: Request = None,
+        response: Response = None,
+        args: tuple = None,
+        kwargs: dict = None,
+):
+    copy_kwargs = kwargs.copy()
+
+    copy_kwargs.pop("db", None)
+    copy_kwargs.pop("request", None)
+    copy_kwargs.pop("response", None)
+
+    return f"{namespace}:{copy_kwargs}"
+
+
 router = APIRouter()
 
 
@@ -20,6 +43,7 @@ async def get_book_details(db: sessionDep, book_id: int):
 
 
 @router.get("", response_model=BookListPaginatedResponse)
+@cache(expire=600, namespace="books-list", key_builder=bookstore_key_builder)
 async def get_list_books(db: sessionDep, limit: int = 100, offset: int = 0):
     total, items = await service_get_books(db, limit, offset)
     return {"total": total, "limit": limit, "offset": offset, "items": items}
@@ -29,7 +53,9 @@ async def get_list_books(db: sessionDep, limit: int = 100, offset: int = 0):
 async def add_book(
     db: sessionDep, book: BookCreate, _: User = Depends(get_current_admin)
 ):
-    return await service_create_book(db, book)
+    book_created = await service_create_book(db, book)
+    await FastAPICache.clear("books-list")
+    return book_created
 
 
 @router.patch("/{book_id}", response_model=BookResponse)
@@ -39,11 +65,14 @@ async def modify_book(
     book_update: BookUpdate,
     _: User = Depends(get_current_admin),
 ):
-    return await service_update_book(db, book_id, book_update)
+    book_updated = await service_update_book(db, book_id, book_update)
+    await FastAPICache.clear("books-list")
+    return book_updated
 
 
 @router.delete("/{book_id}", status_code=204)
 async def delete_book(
     db: sessionDep, book_id: int, _: User = Depends(get_current_admin)
 ):
-    return await service_delete_book(db, book_id)
+    await service_delete_book(db, book_id)
+    await FastAPICache.clear("books-list")
