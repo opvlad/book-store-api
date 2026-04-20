@@ -1,4 +1,9 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.redis import RedisCache
+from redis.asyncio import redis
 
 from app.routers.v1.users import router as users_router
 from app.routers.v1.auth import router as auth_router
@@ -22,11 +27,16 @@ from app.handlers import (
     author_not_found_handler,
     author_is_not_adult,
     book_not_found_handler,
-    order_not_found_handler
+    order_not_found_handler,
 )
 
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    pass
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 app.include_router(users_router, prefix="/api/v1/users", tags=["users"])
@@ -37,7 +47,9 @@ app.include_router(orders_router, prefix="/api/v1/orders", tags=["orders"])
 
 
 app.add_exception_handler(PermissionDeniedError, permission_denied_handler)
-app.add_exception_handler(InsufficientStockQuantityError, insufficient_stock_quantity_handler)
+app.add_exception_handler(
+    InsufficientStockQuantityError, insufficient_stock_quantity_handler
+)
 app.add_exception_handler(EntityNotFoundError, entity_not_found_handler)
 app.add_exception_handler(AuthorNotFoundError, author_not_found_handler)
 app.add_exception_handler(AuthorIsNotAdultError, author_is_not_adult)
