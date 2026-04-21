@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Depends
+from fastapi_cache import FastAPICache
+from fastapi_cache.decorator import cache
 
 from app.dependencies import sessionDep, get_current_admin
 from app.schemas import (
@@ -21,6 +23,7 @@ router = APIRouter()
 
 
 @router.get("", response_model=AuthorListPaginatedResponse)
+@cache(expire=600, namespace="authors-list")
 async def authors_list(db: sessionDep, limit: int = 100, offset: int = 0):
     total, items = await service_get_authors(db, limit=limit, offset=offset)
     return {"total": total, "limit": limit, "offset": offset, "items": items}
@@ -35,7 +38,9 @@ async def read_author_details(db: sessionDep, author_id: int):
 async def create_author(
     db: sessionDep, author: AuthorCreate, _: User = Depends(get_current_admin)
 ):
-    return await service_create_author(db, author)
+    author_created = await service_create_author(db, author)
+    await FastAPICache.clear("authors-list")
+    return author_created
 
 
 @router.patch("/{author_id}", response_model=AuthorResponse)
@@ -45,7 +50,9 @@ async def modify_author(
     author_update: AuthorUpdate,
     _: User = Depends(get_current_admin),
 ):
-    return await service_update_author(db, author_id, author_update)
+    author_updated = await service_update_author(db, author_id, author_update)
+    await FastAPICache.clear("authors-list")
+    return author_updated
 
 
 @router.delete("/{author_id}", status_code=204)
@@ -53,3 +60,4 @@ async def delete_author(
     db: sessionDep, author_id: int, _: User = Depends(get_current_admin)
 ):
     await service_delete_author(db, author_id)
+    await FastAPICache.clear("authors-list")

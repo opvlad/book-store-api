@@ -16,22 +16,7 @@ from app.schemas import BookResponse, BookListPaginatedResponse, BookCreate, Boo
 from fastapi import Request, Response
 
 
-def bookstore_key_builder(
-        func,
-        namespace: str = "",
-        *,
-        request: Request = None,
-        response: Response = None,
-        args: tuple = None,
-        kwargs: dict = None,
-):
-    copy_kwargs = kwargs.copy()
 
-    copy_kwargs.pop("db", None)
-    copy_kwargs.pop("request", None)
-    copy_kwargs.pop("response", None)
-
-    return f"{namespace}:{copy_kwargs}"
 
 
 router = APIRouter()
@@ -43,7 +28,7 @@ async def get_book_details(db: sessionDep, book_id: int):
 
 
 @router.get("", response_model=BookListPaginatedResponse)
-@cache(expire=600, namespace="books-list", key_builder=bookstore_key_builder)
+@cache(expire=600, namespace="books-list")
 async def get_list_books(db: sessionDep, limit: int = 100, offset: int = 0):
     total, items = await service_get_books(db, limit, offset)
     return {"total": total, "limit": limit, "offset": offset, "items": items}

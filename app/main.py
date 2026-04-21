@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Response, Request
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 import redis.asyncio as redis
@@ -31,10 +31,28 @@ from app.handlers import (
 )
 
 
+def bookstore_key_builder(
+        func,
+        namespace: str = "",
+        *,
+        request: Request = None,
+        response: Response = None,
+        args: tuple = None,
+        kwargs: dict = None,
+):
+    copy_kwargs = kwargs.copy()
+
+    copy_kwargs.pop("db", None)
+    copy_kwargs.pop("request", None)
+    copy_kwargs.pop("response", None)
+
+    return f"{namespace}:{copy_kwargs}"
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     redis_client = redis.from_url("redis://localhost", decode_responses=False)
-    FastAPICache.init(RedisBackend(redis_client), prefix="bookstore")
+    FastAPICache.init(RedisBackend(redis_client), prefix="bookstore", key_builder=bookstore_key_builder)
     yield
     await redis_client.close()
 

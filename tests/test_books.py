@@ -30,7 +30,7 @@ async def test_list_books_cache_invalidation(
         assert mock_get_list_books.call_count == call_count
         return get_response
 
-    response = await _get_response(call_count=1)
+    await _get_response(call_count=1)
     mock_get_list_books.reset_mock()
 
     # --- POST invalidates cache ---
