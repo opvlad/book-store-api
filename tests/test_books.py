@@ -1,7 +1,79 @@
 from pytest import mark
-from httpx import AsyncClient
+from httpx import AsyncClient, Response
 
 from app.models import Book
+from app.schemas import BookResponse
+import app.routers.v1.books as books_router
+from tests.utils import assert_response_data
+
+
+async def test_list_books_cache_success(client: AsyncClient, mocker):
+    mock_get_list_books = mocker.spy(books_router, "service_get_books")
+
+    response_1 = await client.get("/api/v1/books")
+    assert response_1.status_code == 200
+    assert mock_get_list_books.call_count == 1
+
+    response_2 = await client.get("/api/v1/books")
+    assert response_2.status_code == 200
+    assert mock_get_list_books.call_count == 1
+
+
+async def test_list_books_cache_invalidation(
+    client: AsyncClient, test_author, mocker, admin_token
+):
+    mock_get_list_books = mocker.spy(books_router, "service_get_books")
+
+    async def _get_response(call_count: int) -> Response:
+        get_response = await client.get("/api/v1/books")
+        assert get_response.status_code == 200
+        assert mock_get_list_books.call_count == call_count
+        return get_response
+
+    await _get_response(call_count=1)
+    mock_get_list_books.reset_mock()
+
+    # --- POST invalidates cache ---
+
+    post_response = await client.post(
+        "/api/v1/books",
+        json={"title": "test title", "author_id": test_author.id, "price": 10},
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert post_response.status_code == 201
+    response = await _get_response(call_count=1)
+    await _get_response(call_count=1)
+
+    assert response.json()["total"] == 1
+    book = post_response.json()
+    assert_response_data(response.json()["items"][0], book, BookResponse)
+    mock_get_list_books.reset_mock()
+
+    # --- PATCH invalidates cache ---
+
+    patch_response = await client.patch(
+        f"/api/v1/books/{book['id']}",
+        json={"title": "new title"},
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert patch_response.status_code == 200
+    response = await _get_response(call_count=1)
+    await _get_response(call_count=1)
+
+    book_updated = patch_response.json()
+    assert_response_data(response.json()["items"][0], book_updated, BookResponse)
+    mock_get_list_books.reset_mock()
+
+    # --- DELETE invalidates cache ---
+
+    delete_response = await client.delete(
+        f"/api/v1/books/{book['id']}",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert delete_response.status_code == 204
+    response = await _get_response(call_count=1)
+    await _get_response(call_count=1)
+    assert response.json()["total"] == 0
 
 
 async def test_get_book_details_success(client: AsyncClient, test_book: Book):
