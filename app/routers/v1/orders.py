@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends
+from fastapi.responses import FileResponse
 from fastapi_filter import FilterDepends
 
 from app.dependencies import sessionDep, get_current_user, get_current_admin
@@ -18,6 +19,7 @@ from app.services import (
     create_order as service_create_order,
     update_order as service_update_order,
     delete_order as service_delete_order,
+    export_orders as service_export_orders,
 )
 
 router = APIRouter()
@@ -82,3 +84,9 @@ async def modify_order(
 @router.delete("/{order_id}", status_code=204)
 async def delete_order(db: sessionDep, order_id: int, admin: User = Depends(get_current_admin)):
     await service_delete_order(db, order_id)
+
+
+@router.get("/export/xlsx")
+async def export_orders(db: sessionDep, limit: int = 100, offset: int = 0, _: User = Depends(get_current_admin)):
+    await service_export_orders(db, limit=limit, offset=offset)
+    return FileResponse("orders.xlsx", filename="orders.xlsx", media_type="application/xlsx")

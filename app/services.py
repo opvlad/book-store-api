@@ -1,8 +1,9 @@
 from datetime import datetime, date
 from decimal import Decimal
-import asyncio
 
+from sqlalchemy import inspect
 from sqlalchemy.ext.asyncio import AsyncSession
+from openpyxl import Workbook
 
 from app import crud
 from app.config import priority_points
@@ -21,7 +22,7 @@ from app.schemas import (
     OrderCreateInDB,
     OrderUpdate,
     UserUpdateAsAdmin,
-    OrderFilter,
+    OrderFilter, OrderAdminResponse,
 )
 from app.exceptions import (
     PermissionDeniedError,
@@ -318,3 +319,36 @@ async def delete_order(db: AsyncSession, order_id: int) -> None:
         raise OrderNotFoundError()
 
     await crud.delete_order(db, order_id)
+
+
+async def export_orders(db: AsyncSession, limit: int, offset: int) -> None:
+    _, orders = await crud.get_orders(db, limit=limit, offset=offset)
+    updated_at = datetime.utcnow()
+
+    wb = Workbook()
+    ws = wb.active
+
+    ws.append(["UPDATED AT:", updated_at.strftime('%Y-%m-%d %H:%M:%S')])
+    ws.append([])
+
+    columns = [c.name for c in Order.__table__.columns]
+    ws.append(columns)
+
+    for order in orders:
+        row = []
+        for column in columns:
+            if column == "items":
+                cell = []
+                for item in order.items:
+                    cell.append(f"book_id: {item['book_id']}, quantity: {item['quantity']}")
+                row.append("\n".join(cell))
+                continue
+
+            if column == "created_at":
+                row.append(order.created_at.strftime('%Y-%m-%d %H:%M:%S'))
+                continue
+
+            row.append(getattr(order, column))
+        ws.append(row)
+
+    wb.save(filename="orders.xlsx")
