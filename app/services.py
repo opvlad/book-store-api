@@ -1,7 +1,9 @@
+import os
 from datetime import datetime, date
 from decimal import Decimal
+from io import BytesIO
+from tempfile import mkstemp
 
-from sqlalchemy import inspect
 from sqlalchemy.ext.asyncio import AsyncSession
 from openpyxl import Workbook
 
@@ -321,34 +323,38 @@ async def delete_order(db: AsyncSession, order_id: int) -> None:
     await crud.delete_order(db, order_id)
 
 
-async def export_orders(db: AsyncSession, limit: int, offset: int) -> None:
-    _, orders = await crud.get_orders(db, limit=limit, offset=offset)
+async def export_orders(db: AsyncSession, limit: int, offset: int) -> tuple[str, str]:
+    import asyncio
+    orders_steam = await crud.get_orders_stream(db, limit, offset)
     updated_at = datetime.utcnow()
+    final_file_name = f"Orders_report_{updated_at.strftime('%Y-%m-%d_%H-%M-%S')}.xlsx"
 
-    wb = Workbook()
-    ws = wb.active
-
-    ws.append(["UPDATED AT:", updated_at.strftime('%Y-%m-%d %H:%M:%S')])
-    ws.append([])
+    wb = Workbook(write_only=True)
+    ws = wb.create_sheet("Orders Report")
 
     columns = [c.name for c in Order.__table__.columns]
     ws.append(columns)
 
-    for order in orders:
-        row = []
+    async for order in orders_steam:
+        result_row = []
         for column in columns:
             if column == "items":
                 cell = []
                 for item in order.items:
                     cell.append(f"book_id: {item['book_id']}, quantity: {item['quantity']}")
-                row.append("\n".join(cell))
+                result_row.append("\n".join(cell))
                 continue
 
             if column == "created_at":
-                row.append(order.created_at.strftime('%Y-%m-%d %H:%M:%S'))
+                result_row.append(order.created_at.strftime('%Y-%m-%d %H:%M:%S'))
                 continue
 
-            row.append(getattr(order, column))
-        ws.append(row)
+            result_row.append(getattr(order, column))
 
-    wb.save(filename="orders.xlsx")
+        ws.append(result_row)
+
+    fd, temp_file_path = mkstemp()
+    os.close(fd)
+
+    wb.save(temp_file_path)
+    return temp_file_path, final_file_name
