@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, date
+from datetime import datetime, date, UTC
 from decimal import Decimal
 from io import BytesIO
 from tempfile import mkstemp
@@ -326,7 +326,7 @@ async def delete_order(db: AsyncSession, order_id: int) -> None:
 async def export_orders(db: AsyncSession, limit: int, offset: int) -> tuple[str, str]:
     import asyncio
     orders_steam = await crud.get_orders_stream(db, limit, offset)
-    updated_at = datetime.utcnow()
+    updated_at = datetime.now(UTC)
     final_file_name = f"Orders_report_{updated_at.strftime('%Y-%m-%d_%H-%M-%S')}.xlsx"
 
     wb = Workbook(write_only=True)
@@ -337,6 +337,7 @@ async def export_orders(db: AsyncSession, limit: int, offset: int) -> tuple[str,
 
     async for order in orders_steam:
         result_row = []
+
         for column in columns:
             if column == "items":
                 cell = []

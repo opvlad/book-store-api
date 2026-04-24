@@ -1,10 +1,14 @@
 from decimal import Decimal
+from io import BytesIO
+import os
+
 from httpx import AsyncClient, Response
 from pytest import mark
+from openpyxl import load_workbook
 
+import app.routers.v1.orders as orders_router
 from app.models import Order, OrderStatus, DeliveryType
 from app.security import create_access_token
-from app.services import calculate_priority
 from app.schemas import OrderResponse, OrderAdminResponse
 
 
@@ -372,3 +376,56 @@ async def test_delete_order_not_found(client: AsyncClient, admin_token):
     )
     assert response.status_code == 404
     assert response.json()["detail"] == "Order not found"
+
+
+async def test_order_export_xlsx_success(client: AsyncClient, mocker, test_order, admin_token):
+    spy_remove_temp_file = mocker.spy(orders_router, "remove_temp_file")
+
+    response = await client.get(
+        "/api/v1/orders/export/xlsx", headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    assert 'attachment; filename="Orders_report_' in response.headers["content-disposition"]
+
+    spy_remove_temp_file.assert_called_once()
+    temp_file_path = spy_remove_temp_file.call_args.args[0]
+    assert os.path.exists(temp_file_path) is False
+
+    file = BytesIO(response.content)
+    wb = load_workbook(file)
+    ws = wb.active
+
+    expected_columns = Order.__table__.columns.keys()
+    for col in range(len(expected_columns)):
+        assert ws.cell(row=1, column=col + 1).value == expected_columns[col]
+
+        if expected_columns[col] == "items":
+            expected_items = []
+            for item in test_order.items:
+                expected_items.append(f"book_id: {item['book_id']}, quantity: {item['quantity']}")
+            expected_cell = "\n".join(expected_items)
+            assert ws.cell(row=2, column=col + 1).value == expected_cell
+            continue
+
+        if expected_columns[col] == "created_at":
+            assert ws.cell(row=2, column=col + 1).value == test_order.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            continue
+
+        assert ws.cell(row=2, column=col + 1).value == getattr(test_order, expected_columns[col])
+
+
+async def test_order_export_xlsx_not_authenticated(client: AsyncClient,):
+    response = await client.get(
+        "/api/v1/orders/export/xlsx"
+    )
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Not authenticated"
+
+
+async def test_order_export_xlsx_forbidden(client: AsyncClient, user_token):
+    response = await client.get(
+        "/api/v1/orders/export/xlsx", headers={"Authorization": f"Bearer {user_token}"}
+    )
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Admin permission required"
