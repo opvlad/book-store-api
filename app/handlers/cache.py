@@ -9,9 +9,6 @@ from app.event_bus import bus
 async def invalidate_books_list_cache(**kwargs):
     await FastAPICache.clear(namespace="books-list")
 
-@bus.on_event("book.updated")
-async def test_cache(**kwargs):
-    raise ValueError("test")
 
 @bus.on_event("author.created")
 @bus.on_event("author.updated")
