@@ -7,8 +7,9 @@ from pytest import mark
 from openpyxl import load_workbook
 
 import app.routers.v1.orders as orders_router
-from app.models import Order, OrderStatus, DeliveryType
+import app.crud as crud
 from app.security import create_access_token
+from app.models import Order, OrderStatus, DeliveryType
 from app.schemas import OrderResponse, OrderAdminResponse
 
 
@@ -396,7 +397,7 @@ async def test_order_export_xlsx_success(client: AsyncClient, mocker, test_order
     wb = load_workbook(file)
     ws = wb.active
 
-    expected_columns = Order.__table__.columns.keys()
+    expected_columns = list(Order.__table__.columns.keys())
     for col in range(len(expected_columns)):
         assert ws.cell(row=1, column=col + 1).value == expected_columns[col]
 
@@ -413,6 +414,38 @@ async def test_order_export_xlsx_success(client: AsyncClient, mocker, test_order
             continue
 
         assert ws.cell(row=2, column=col + 1).value == getattr(test_order, expected_columns[col])
+
+
+async def test_order_export_xlsx_empty(client: AsyncClient, admin_token):
+    response = await client.get(
+        "/api/v1/orders/export/xlsx", headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 200
+
+    file = BytesIO(response.content)
+    wb = load_workbook(file)
+    ws = wb.active
+
+    assert ws.max_row == 1
+
+
+async def test_order_export_xlsx_paginated(client: AsyncClient, admin_token, test_order, mocker):
+    spy_get_orders_stream = mocker.spy(crud, "get_orders_stream")
+
+    response = await client.get(
+        "/api/v1/orders/export/xlsx?limit=10&offset=2", headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 200
+
+    called_kwargs = spy_get_orders_stream.call_args.kwargs
+    assert called_kwargs["limit"] == 10
+    assert called_kwargs["offset"] == 2
+
+    file = BytesIO(response.content)
+    wb = load_workbook(file)
+    ws = wb.active
+
+    assert ws.max_row == 1
 
 
 async def test_order_export_xlsx_not_authenticated(client: AsyncClient,):

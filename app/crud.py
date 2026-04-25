@@ -195,7 +195,7 @@ async def get_orders(
 
 
 async def get_orders_stream(db: AsyncSession, limit: int, offset: int) -> AsyncResult:
-    stmt = select(Order).order_by(Order.id).offset(offset).limit(limit).execution_options(yield_per=2)
+    stmt = select(Order).order_by(Order.id).offset(offset).limit(limit).execution_options(yield_per=100)
     return (await db.stream(stmt)).scalars()
 
 
