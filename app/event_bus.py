@@ -10,7 +10,10 @@ class EventBus:
 
     async def emit(self, event: str, **kwargs):
         for handler in self._handlers.get(event, []):
-            await handler(**kwargs)
+            try:
+                await handler(**kwargs)
+            except Exception:
+                raise
 
 
 bus = EventBus()

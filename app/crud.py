@@ -1,5 +1,5 @@
 from sqlalchemy import select, func
-from sqlalchemy.ext.asyncio import AsyncSession, AsyncResult
+from sqlalchemy.ext.asyncio import AsyncSession, AsyncScalarResult
 from pydantic import EmailStr
 
 from app.models import User, Author, Book, Order
@@ -194,7 +194,7 @@ async def get_orders(
     return total, list(items.scalars().all())
 
 
-async def get_orders_stream(db: AsyncSession, limit: int, offset: int) -> AsyncResult:
+async def get_orders_stream(db: AsyncSession, limit: int, offset: int) -> AsyncScalarResult:
     stmt = select(Order).order_by(Order.id).offset(offset).limit(limit).execution_options(yield_per=100)
     return (await db.stream(stmt)).scalars()
 
