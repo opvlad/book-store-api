@@ -1,8 +1,10 @@
-from datetime import datetime, date
+import os
+from datetime import datetime, date, UTC
 from decimal import Decimal
-import asyncio
+from tempfile import mkstemp
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from openpyxl import Workbook
 
 from app import crud
 from app.config import priority_points
@@ -270,21 +272,21 @@ async def create_order(db: AsyncSession, order: OrderCreate, user: User) -> Orde
     items = order.model_dump()["items"]
     items_map = {item["book_id"]: item["quantity"] for item in items}
 
-    books = await crud.get_books_by_ids(db, items_map.keys())
+    books = await crud.get_books_by_ids(db, list(items_map.keys()))
     books_map = {book.id: book for book in books}
 
-    not_existed_book_ids = items_map.keys() - books_map.keys()
+    not_existed_book_ids = list(items_map.keys() - books_map.keys())
     if not_existed_book_ids:
         raise EntityNotFoundError(entity_name="Book", entity_ids=not_existed_book_ids)
 
     insufficient_stock_qty_book_ids = [
-        id for id, book in books_map.items() if book.stock_quantity < items_map[id]
+        book_id for book_id, book in books_map.items() if book.stock_quantity < items_map[book_id]
     ]
     if insufficient_stock_qty_book_ids:
         raise InsufficientStockQuantityError(book_ids=insufficient_stock_qty_book_ids)
 
     total_amount = Decimal(
-        sum([items_map[id] * book.price for id, book in books_map.items()])
+        sum([items_map[book_id] * book.price for book_id, book in books_map.items()])
     )
     priority = calculate_priority(
         user_status=user.status,
@@ -318,3 +320,40 @@ async def delete_order(db: AsyncSession, order_id: int) -> None:
         raise OrderNotFoundError()
 
     await crud.delete_order(db, order_id)
+
+
+async def export_orders(db: AsyncSession, limit: int, offset: int) -> tuple[str, str]:
+    orders_steam = await crud.get_orders_stream(db, limit=limit, offset=offset)
+    updated_at = datetime.now(UTC)
+    final_file_name = f"Orders_report_{updated_at.strftime('%Y-%m-%d_%H-%M-%S')}.xlsx"
+
+    wb = Workbook(write_only=True)
+    ws = wb.create_sheet("Orders Report")
+
+    columns = list(Order.__table__.columns.keys())
+    ws.append(columns)
+
+    async for order in orders_steam:
+        result_row = []
+
+        for column in columns:
+            if column == "items":
+                cell = []
+                for item in order.items:
+                    cell.append(f"book_id: {item['book_id']}, quantity: {item['quantity']}")
+                result_row.append("\n".join(cell))
+                continue
+
+            if column == "created_at":
+                result_row.append(order.created_at.strftime('%Y-%m-%d %H:%M:%S'))
+                continue
+
+            result_row.append(getattr(order, column))
+
+        ws.append(result_row)
+
+    fd, temp_file_path = mkstemp()
+    os.close(fd)
+
+    wb.save(temp_file_path)
+    return temp_file_path, final_file_name

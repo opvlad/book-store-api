@@ -2,6 +2,9 @@
 __pycache__/
 *.py[codz]
 
+# redis
+*.rdb
+
 # Distribution / packaging
 build/
 dist/

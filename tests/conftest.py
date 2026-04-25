@@ -161,11 +161,12 @@ async def test_book_zero_stock_qty(db_session, test_author) -> Book:
 
 
 @pytest.fixture()
-async def test_order(db_session, test_user, test_book) -> Order:
+async def test_order(db_session, test_user, test_book, test_other_book) -> Order:
     test_order = Order(
         user_id=test_user.id,
         items=[
             {"book_id": test_book.id, "quantity": 5},
+            {"book_id": test_other_book.id, "quantity": 2},
         ],
         total_amount=Decimal(test_book.price * 5),
         priority=calculate_priority(
