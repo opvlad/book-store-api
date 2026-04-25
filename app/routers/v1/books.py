@@ -32,9 +32,9 @@ async def get_list_books(db: sessionDep, limit: int = 100, offset: int = 0):
 
 @router.post("", response_model=BookResponse, status_code=201)
 async def add_book(
-    db: sessionDep, book: BookCreate, _: User = Depends(get_current_admin)
+    db: sessionDep, book: BookCreate, admin: User = Depends(get_current_admin)
 ):
-    book_created = await service_create_book(db, book)
+    book_created = await service_create_book(db, book, requester=admin)
     await bus.emit("book.created")
     return book_created
 
@@ -44,16 +44,16 @@ async def modify_book(
     db: sessionDep,
     book_id: int,
     book_update: BookUpdate,
-    _: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_admin),
 ):
-    book_updated = await service_update_book(db, book_id, book_update)
+    book_updated = await service_update_book(db, book_id, book_update, requester=admin)
     await bus.emit("book.updated")
     return book_updated
 
 
 @router.delete("/{book_id}", status_code=204)
 async def delete_book(
-    db: sessionDep, book_id: int, _: User = Depends(get_current_admin)
+    db: sessionDep, book_id: int, admin: User = Depends(get_current_admin)
 ):
-    await service_delete_book(db, book_id)
+    await service_delete_book(db, book_id, requester=admin)
     await bus.emit("book.deleted")

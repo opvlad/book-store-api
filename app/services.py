@@ -71,9 +71,7 @@ async def register_user(db: AsyncSession, user: UserCreate) -> User:
     )
     new_user = await crud.create_user(db, user_in_db)
 
-    logger.info(
-        f"REGISTER_SUCCESS | user_id={new_user.id}"
-    )
+    logger.info(f"REGISTER_SUCCESS | user_id={new_user.id}")
 
     return new_user
 
@@ -227,33 +225,50 @@ async def get_books(
     return await crud.get_books(db, limit, offset)
 
 
-async def create_book(db: AsyncSession, book: BookCreate) -> Book:
+async def create_book(db: AsyncSession, book: BookCreate, requester: User) -> Book:
     existing_author = await crud.get_author_by_id(db, book.author_id)
     if not existing_author:
+        logger.warning(f"BOOK_CREATE_AUTHOR_NOT_FOUND | author_id={book.author_id}")
         raise AuthorNotFoundError()
 
-    return await crud.create_book(db, book)
+    book_created = await crud.create_book(db, book)
+    logger.info(
+        f"BOOK_CREATED | requester_id={requester.id} | book_id={book_created.id}"
+    )
+    return book_created
 
 
-async def update_book(db: AsyncSession, book_id: int, book_update: BookUpdate) -> Book:
+async def update_book(
+    db: AsyncSession, book_id: int, book_update: BookUpdate, requester: User
+) -> Book:
     existing_book = await crud.get_book_by_id(db, book_id)
     if not existing_book:
+        logger.warning(f"BOOK_UPDATE_NOT_FOUND | book_id={book_id}")
         raise BookNotFoundError()
 
     if book_update.author_id is not None:
         existing_author = await crud.get_author_by_id(db, book_update.author_id)
         if not existing_author:
+            logger.warning(
+                f"BOOK_UPDATE_AUTHOR_NOT_FOUND | author_id={book_update.author_id}"
+            )
             raise AuthorNotFoundError()
 
-    return await crud.update_book(db, book_id, book_update)
+    book_updated = await crud.update_book(db, book_id, book_update)
+    logger.info(
+        f"BOOK_UPDATED | requester_id={requester.id} | book_id={book_id} | data={book_update.model_dump_json(exclude_unset=True)}"
+    )
+    return book_updated
 
 
-async def delete_book(db: AsyncSession, book_id: int) -> None:
+async def delete_book(db: AsyncSession, book_id: int, requester: User) -> None:
     existing_book = await crud.get_book_by_id(db, book_id)
     if not existing_book:
+        logger.warning(f"BOOK_DELETE_NOT_FOUND | book_id={book_id}")
         raise BookNotFoundError()
 
     await crud.delete_book(db, book_id)
+    logger.info(f"BOOK_DELETED | requester_id={requester.id} | book_id={book_id}")
 
 
 # ORDERS
