@@ -71,13 +71,18 @@ async def register_user(db: AsyncSession, user: UserCreate) -> User:
     )
     new_user = await crud.create_user(db, user_in_db)
 
-    logger.info(f"REGISTER_SUCCESS | user_id={new_user.id} username={new_user.username}")
+    logger.info(
+        f"REGISTER_SUCCESS | user_id={new_user.id}"
+    )
 
     return new_user
 
 
 async def update_user(
-    db: AsyncSession, user_id: int, user: UserUpdate | UserUpdateAsAdmin, requester: User | None = None
+    db: AsyncSession,
+    user_id: int,
+    user: UserUpdate | UserUpdateAsAdmin,
+    requester: User | None = None,
 ) -> User:
     existing_user = await crud.get_user_by_id(db, user_id)
     if not existing_user:
@@ -89,27 +94,35 @@ async def update_user(
     if "username" in updated_data:
         duplicate = await crud.get_user_by_username(db, user.username)
         if duplicate and duplicate.id != user_id:
-            logger.warning(f"USER_UPDATE_DUPLICATE | user_id={user_id} | username={user.username}")
+            logger.warning(
+                f"USER_UPDATE_DUPLICATE | user_id={user_id} | username={user.username}"
+            )
             raise DuplicateFieldError("Username already exists")
 
     if "email" in updated_data:
         duplicate = await crud.get_user_by_email(db, user.email)
         if duplicate and duplicate.id != user_id:
-            logger.warning(f"USER_UPDATE_DUPLICATE | user_id={user_id} | email={user.email}")
+            logger.warning(
+                f"USER_UPDATE_DUPLICATE | user_id={user_id} | email={user.email}"
+            )
             raise DuplicateFieldError("Email already exists")
 
     user_updated = await crud.update_user(db, user_id, updated_data)
-    logger.info(f"USER_UPDATED | user_id={user_id} requester_id={requester.id} | {updated_data}")
+    logger.info(
+        f"USER_UPDATED | requester_id={requester.id} | user_id={user_id} | data={updated_data}"
+    )
     return user_updated
 
 
-async def delete_user(db: AsyncSession, user_id: int, requester: User | None = None) -> None:
+async def delete_user(
+    db: AsyncSession, user_id: int, requester: User | None = None
+) -> None:
     if not await crud.get_user_by_id(db, user_id):
         logger.warning(f"USER_DELETE_NOT_FOUND | user_id={user_id}")
         raise UserNotFoundError()
 
     await crud.delete_user(db, user_id)
-    logger.info(f"USER_DELETED | user_id={user_id} requester_id={requester.id}")
+    logger.info(f"USER_DELETED | requester_id={requester.id} | user_id={user_id}")
 
 
 async def login_user(db: AsyncSession, credentials: LoginForm) -> str:
@@ -154,32 +167,48 @@ async def get_authors(
     return await crud.get_authors(db, offset, limit)
 
 
-async def create_author(db: AsyncSession, author: AuthorCreate) -> Author:
+async def create_author(
+    db: AsyncSession, author: AuthorCreate, requester: User
+) -> Author:
     if not is_adult(author.birth_date):
+        logger.warning(f"AUTHOR_CREATE_UNDERAGE | birth_date={author.birth_date}")
         raise AuthorIsNotAdultError()
 
-    return await crud.create_author(db, author)
+    author_created = await crud.create_author(db, author)
+    logger.info(
+        f"AUTHOR_CREATED | requester_id={requester.id} | author_id={author_created.id}"
+    )
+    return author_created
 
 
 async def update_author(
-    db: AsyncSession, author_id: int, author: AuthorUpdate
+    db: AsyncSession, author_id: int, author: AuthorUpdate, requester: User
 ) -> Author:
     existing_author = await crud.get_author_by_id(db, author_id)
     if not existing_author:
+        logger.warning(f"AUTHOR_UPDATE_NOT_FOUND | author_id={author_id}")
         raise AuthorNotFoundError()
 
     if author.birth_date and not is_adult(author.birth_date):
+        logger.warning(f"AUTHOR_UPDATE_UNDERAGE | birth_date={author.birth_date}")
         raise AuthorIsNotAdultError()
 
-    return await crud.update_author(db, author_id, author)
+    author_updated = await crud.update_author(db, author_id, author)
+    logger.info(
+        f"AUTHOR_UPDATED | requester_id={requester.id} | author_id={author_id}"
+        f"{author.model_dump_json(exclude_unset=True)}"
+    )
+    return author_updated
 
 
-async def delete_author(db: AsyncSession, author_id: int) -> None:
+async def delete_author(db: AsyncSession, author_id: int, requester: User) -> None:
     existing_author = await crud.get_author_by_id(db, author_id)
     if not existing_author:
+        logger.warning(f"AUTHOR_DELETE_NOT_FOUND | author_id={author_id}")
         raise AuthorNotFoundError()
 
     await crud.delete_author(db, author_id)
+    logger.info(f"AUTHOR_DELETED | requester_id={requester.id} | author_id={author_id}")
 
 
 # BOOKS
@@ -300,7 +329,9 @@ async def create_order(db: AsyncSession, order: OrderCreate, user: User) -> Orde
         raise EntityNotFoundError(entity_name="Book", entity_ids=not_existed_book_ids)
 
     insufficient_stock_qty_book_ids = [
-        book_id for book_id, book in books_map.items() if book.stock_quantity < items_map[book_id]
+        book_id
+        for book_id, book in books_map.items()
+        if book.stock_quantity < items_map[book_id]
     ]
     if insufficient_stock_qty_book_ids:
         raise InsufficientStockQuantityError(book_ids=insufficient_stock_qty_book_ids)
@@ -360,12 +391,14 @@ async def export_orders(db: AsyncSession, limit: int, offset: int) -> tuple[str,
             if column == "items":
                 cell = []
                 for item in order.items:
-                    cell.append(f"book_id: {item['book_id']}, quantity: {item['quantity']}")
+                    cell.append(
+                        f"book_id: {item['book_id']}, quantity: {item['quantity']}"
+                    )
                 result_row.append("\n".join(cell))
                 continue
 
             if column == "created_at":
-                result_row.append(order.created_at.strftime('%Y-%m-%d %H:%M:%S'))
+                result_row.append(order.created_at.strftime("%Y-%m-%d %H:%M:%S"))
                 continue
 
             result_row.append(getattr(order, column))

@@ -38,9 +38,9 @@ async def read_author_details(db: sessionDep, author_id: int):
 
 @router.post("", response_model=AuthorResponse, status_code=201)
 async def create_author(
-    db: sessionDep, author: AuthorCreate, _: User = Depends(get_current_admin)
+    db: sessionDep, author: AuthorCreate, admin: User = Depends(get_current_admin)
 ):
-    author_created = await service_create_author(db, author)
+    author_created = await service_create_author(db, author, requester=admin)
     await bus.emit("author.created")
     return author_created
 
@@ -50,16 +50,16 @@ async def modify_author(
     db: sessionDep,
     author_id: int,
     author_update: AuthorUpdate,
-    _: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_admin),
 ):
-    author_updated = await service_update_author(db, author_id, author_update)
+    author_updated = await service_update_author(db, author_id, author_update, requester=admin)
     await bus.emit("author.updated")
     return author_updated
 
 
 @router.delete("/{author_id}", status_code=204)
 async def delete_author(
-    db: sessionDep, author_id: int, _: User = Depends(get_current_admin)
+    db: sessionDep, author_id: int, admin: User = Depends(get_current_admin)
 ):
-    await service_delete_author(db, author_id)
+    await service_delete_author(db, author_id, requester=admin)
     await bus.emit("author.deleted")
