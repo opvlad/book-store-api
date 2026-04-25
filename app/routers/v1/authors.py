@@ -27,7 +27,8 @@ router = APIRouter()
 @cache(expire=600, namespace="authors-list")
 async def authors_list(db: sessionDep, limit: int = 100, offset: int = 0):
     total, items = await service_get_authors(db, limit=limit, offset=offset)
-    return {"total": total, "limit": limit, "offset": offset, "items": items}
+    items_list = [AuthorResponse.model_validate(author) for author in items]
+    return {"total": total, "limit": limit, "offset": offset, "items": items_list}
 
 
 @router.get("/{author_id}", response_model=AuthorResponse)

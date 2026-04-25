@@ -1,4 +1,5 @@
 import os
+import logging
 from datetime import datetime, date, UTC
 from decimal import Decimal
 from tempfile import mkstemp
@@ -7,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from openpyxl import Workbook
 
 from app import crud
-from app.config import priority_points
+from app.config.settings import priority_points
 from app.models import User, Author, Book, Order, UserRole, OrderStatus
 from app.security import get_password_hash, verify_password, create_access_token
 from app.schemas import (
@@ -39,6 +40,9 @@ from app.exceptions import (
 )
 
 
+logger = logging.getLogger(__name__)
+
+
 # USERS
 
 
@@ -54,24 +58,30 @@ async def get_users(
 
 async def register_user(db: AsyncSession, user: UserCreate) -> User:
     if await crud.get_user_by_username(db, user.username):
+        logger.warning(f"REG_DUPLICATE | username={user.username}")
         raise DuplicateFieldError("Username already exists")
 
     if await crud.get_user_by_email(db, user.email):
+        logger.warning(f"REG_DUPLICATE | email={user.email}")
         raise DuplicateFieldError("Email already exists")
 
     user_in_db = UserCreateInDB(
         **user.model_dump(exclude={"password"}),
         password_hash=get_password_hash(user.password),
     )
+    new_user = await crud.create_user(db, user_in_db)
 
-    return await crud.create_user(db, user_in_db)
+    logger.info(f"USER_REGISTERED | user_id={new_user.id} username={new_user.username}")
+
+    return new_user
 
 
 async def update_user(
-    db: AsyncSession, user_id: int, user: UserUpdate | UserUpdateAsAdmin
+    db: AsyncSession, user_id: int, user: UserUpdate | UserUpdateAsAdmin, requester: User | None = None
 ) -> User:
     existing_user = await crud.get_user_by_id(db, user_id)
     if not existing_user:
+        logger.warning(f"USER_UPDATE_NOT_FOUND | user_id={user_id}")
         raise UserNotFoundError()
 
     updated_data = user.model_dump(exclude_unset=True)
@@ -79,33 +89,42 @@ async def update_user(
     if "username" in updated_data:
         duplicate = await crud.get_user_by_username(db, user.username)
         if duplicate and duplicate.id != user_id:
+            logger.warning(f"USER_UPDATE_DUPLICATE | user_id={user_id} | username={user.username}")
             raise DuplicateFieldError("Username already exists")
 
     if "email" in updated_data:
         duplicate = await crud.get_user_by_email(db, user.email)
         if duplicate and duplicate.id != user_id:
+            logger.warning(f"USER_UPDATE_DUPLICATE | user_id={user_id} | email={user.email}")
             raise DuplicateFieldError("Email already exists")
 
-    return await crud.update_user(db, user_id, updated_data)
+    user_updated = await crud.update_user(db, user_id, updated_data)
+    logger.info(f"USER_UPDATED | user_id={user_id} requester_id={requester.id} | {updated_data}")
+    return user_updated
 
 
-async def delete_user(db: AsyncSession, user_id: int) -> None:
+async def delete_user(db: AsyncSession, user_id: int, requester: User | None = None) -> None:
     if not await crud.get_user_by_id(db, user_id):
+        logger.warning(f"USER_DELETE_NOT_FOUND | user_id={user_id}")
         raise UserNotFoundError()
 
     await crud.delete_user(db, user_id)
+    logger.info(f"USER_DELETED | user_id={user_id} requester_id={requester.id}")
 
 
 async def login_user(db: AsyncSession, credentials: LoginForm) -> str:
     db_user = await crud.get_user_by_username(db, credentials.username)
 
     if not db_user:
+        logger.warning(f"LOGIN_FAIL_USER_NOT_FOUND | username={credentials.username}")
         raise UserNotFoundError()
 
     if not verify_password(credentials.password, db_user.password_hash):
         raise UnauthorizedError()
 
-    return create_access_token({"id": db_user.id})
+    access_token = create_access_token({"id": db_user.id})
+    logger.info(f"LOGIN_SUCCESS | user_id={db_user.id}")
+    return access_token
 
 
 # AUTHORS

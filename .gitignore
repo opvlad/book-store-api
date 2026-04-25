@@ -5,6 +5,9 @@ __pycache__/
 # redis
 *.rdb
 
+# logs
+*.log
+
 # Distribution / packaging
 build/
 dist/
@@ -28,7 +31,7 @@ venv/
 .idea/
 
 # Visual Studio Code
- .vscode/
+.vscode/
 
 # Ruff stuff:
 .ruff_cache/

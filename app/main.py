@@ -1,4 +1,6 @@
+import logging
 from contextlib import asynccontextmanager
+from time import perf_counter
 
 from fastapi import FastAPI, Response, Request
 from fastapi_cache import FastAPICache
@@ -30,16 +32,20 @@ from app.handlers.exceptions import (
     order_not_found_handler,
 )
 import app.handlers.cache
+import app.config.logging
+
+
+logger = logging.getLogger(__name__)
 
 
 def bookstore_key_builder(
-        func,
-        namespace: str = "",
-        *,
-        request: Request = None,
-        response: Response = None,
-        args: tuple = None,
-        kwargs: dict = None,
+    func,
+    namespace: str = "",
+    *,
+    request: Request = None,
+    response: Response = None,
+    args: tuple = None,
+    kwargs: dict = None,
 ):
     copy_kwargs = kwargs.copy()
 
@@ -53,9 +59,15 @@ def bookstore_key_builder(
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     redis_client = redis.from_url("redis://localhost", decode_responses=False)
-    FastAPICache.init(RedisBackend(redis_client), prefix="bookstore", key_builder=bookstore_key_builder)
+    FastAPICache.init(
+        RedisBackend(redis_client),
+        prefix="bookstore",
+        key_builder=bookstore_key_builder,
+    )
+    logger.info("application started")
     yield
     await redis_client.close()
+    logger.info("application stopped")
 
 
 app = FastAPI(lifespan=lifespan)
@@ -77,6 +89,18 @@ app.add_exception_handler(AuthorNotFoundError, author_not_found_handler)
 app.add_exception_handler(AuthorIsNotAdultError, author_is_not_adult)
 app.add_exception_handler(BookNotFoundError, book_not_found_handler)
 app.add_exception_handler(OrderNotFoundError, order_not_found_handler)
+
+
+@app.middleware("http")
+async def log_request(request: Request, call_next):
+    start_time = perf_counter()
+    response = await call_next(request)
+    process_time = perf_counter() - start_time
+    logger.info(
+        f"{request.method} {request.url} | {response.status_code} | ip={request.client.host} pt="
+        f"{process_time * 1000:.2f} ms"
+    )
+    return response
 
 
 @app.get("/health")

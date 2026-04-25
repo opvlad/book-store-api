@@ -56,19 +56,19 @@ async def modify_user(
     db: sessionDep,
     user_id: int,
     user_update: UserUpdateAsAdmin,
-    _: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_admin),
 ):
     try:
-        return await service_update_user(db, user_id, user_update)
+        return await service_update_user(db, user_id, user_update, requester=admin)
     except UserNotFoundError:
         raise HTTPException(status_code=404, detail="User not found")
 
 
 @router.delete("/{user_id}", status_code=204)
 async def remove_user(
-    db: sessionDep, user_id: int, _: User = Depends(get_current_admin)
+    db: sessionDep, user_id: int, admin: User = Depends(get_current_admin)
 ):
     try:
-        await service_delete_user(db, user_id)
+        await service_delete_user(db, user_id, requester=admin)
     except UserNotFoundError:
         raise HTTPException(status_code=404, detail="User not found")

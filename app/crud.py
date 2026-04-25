@@ -78,7 +78,7 @@ async def get_authors(
     db: AsyncSession, offset: int, limit: int
 ) -> tuple[int, list[Author]]:
     result = await db.execute(
-        select(Author).order_by(Author.id).offset(offset).limit(limit)
+        select(Author).order_by(Author.id).limit(limit).offset(offset)
     )
     total = await db.scalar(select(func.count(Author.id)))
     return total, list(result.scalars().all())

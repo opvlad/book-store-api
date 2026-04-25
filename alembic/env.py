@@ -8,7 +8,7 @@ from app.models import Author, Book, Order, User  # noqa: F401
 from alembic import context
 
 from app.database import Base
-from app.config import settings
+from app.config.settings import settings
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url)
