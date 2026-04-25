@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
@@ -12,11 +14,16 @@ from app.exceptions import (
 )
 
 
+logger = logging.getLogger(__name__)
+
+
 async def permission_denied_handler(request: Request, exc: PermissionDeniedError):
     return JSONResponse(status_code=403, content={"detail": "Permission denied"})
 
 
-async def insufficient_stock_quantity_handler(request: Request, exc: InsufficientStockQuantityError):
+async def insufficient_stock_quantity_handler(
+    request: Request, exc: InsufficientStockQuantityError
+):
     return JSONResponse(status_code=400, content={"detail": str(exc)})
 
 
@@ -38,3 +45,11 @@ async def book_not_found_handler(request: Request, exc: BookNotFoundError):
 
 async def order_not_found_handler(request: Request, exc: OrderNotFoundError):
     return JSONResponse(status_code=404, content={"detail": "Order not found"})
+
+
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    logger.error(
+        f"UNHANDLED_ERROR | {request.method} {request.url.path} | ip={request.client.host} | error={exc}",
+        exc_info=True,
+    )
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})

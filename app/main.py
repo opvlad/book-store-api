@@ -30,6 +30,7 @@ from app.handlers.exceptions import (
     author_is_not_adult,
     book_not_found_handler,
     order_not_found_handler,
+    unhandled_exception_handler,
 )
 import app.handlers.cache
 import app.config.logging
@@ -89,6 +90,7 @@ app.add_exception_handler(AuthorNotFoundError, author_not_found_handler)
 app.add_exception_handler(AuthorIsNotAdultError, author_is_not_adult)
 app.add_exception_handler(BookNotFoundError, book_not_found_handler)
 app.add_exception_handler(OrderNotFoundError, order_not_found_handler)
+app.add_exception_handler(Exception, unhandled_exception_handler)
 
 
 @app.middleware("http")
@@ -97,7 +99,7 @@ async def log_request(request: Request, call_next):
     response = await call_next(request)
     process_time = perf_counter() - start_time
     logger.info(
-        f"{request.method} {request.url} | {response.status_code} | ip={request.client.host} pt="
+        f"{request.method} {request.url.path} | {response.status_code} | ip={request.client.host} pt="
         f"{process_time * 1000:.2f} ms"
     )
     return response

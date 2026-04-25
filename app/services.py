@@ -341,6 +341,9 @@ async def create_order(db: AsyncSession, order: OrderCreate, user: User) -> Orde
 
     not_existed_book_ids = list(items_map.keys() - books_map.keys())
     if not_existed_book_ids:
+        logger.warning(
+            f"ORDER_CREATE_NOT_FOUND | user_id={user.id} | book_ids={not_existed_book_ids}"
+        )
         raise EntityNotFoundError(entity_name="Book", entity_ids=not_existed_book_ids)
 
     insufficient_stock_qty_book_ids = [
@@ -349,6 +352,9 @@ async def create_order(db: AsyncSession, order: OrderCreate, user: User) -> Orde
         if book.stock_quantity < items_map[book_id]
     ]
     if insufficient_stock_qty_book_ids:
+        logger.warning(
+            f"ORDER_CREATE_INSUFFICIENT_BOOKS | user_id={user.id} | book_ids={insufficient_stock_qty_book_ids}"
+        )
         raise InsufficientStockQuantityError(book_ids=insufficient_stock_qty_book_ids)
 
     total_amount = Decimal(
@@ -367,25 +373,37 @@ async def create_order(db: AsyncSession, order: OrderCreate, user: User) -> Orde
         total_amount=total_amount,
         priority=priority,
     )
-    return await crud.create_order(db, order_create_in_db)
+    order_created = await crud.create_order(db, order_create_in_db)
+    logger.info(f"ORDER_CREATED | order_id={order_created.id}")
+    return order_created
 
 
 async def update_order(
-    db: AsyncSession, order_id: int, order_update: OrderUpdate
+    db: AsyncSession, order_id: int, order_update: OrderUpdate, requester: User
 ) -> Order:
     order = await crud.get_order_by_id(db, order_id)
     if not order:
+        logger.warning(
+            f"ORDER_UPDATE_NOT_FOUND | requester_id={requester.id} | order_id={order_id}"
+        )
         raise OrderNotFoundError()
 
-    return await crud.update_order(db, order_id, order_update)
+    order_updated = await crud.update_order(db, order_id, order_update)
+    logger.info(
+        f"ORDER_UPDATED | requester_id={requester.id} | order_id={order_updated.id} | data="
+        f"{order_update.model_dump_json(exclude_none=True)}"
+    )
+    return order_updated
 
 
-async def delete_order(db: AsyncSession, order_id: int) -> None:
+async def delete_order(db: AsyncSession, order_id: int, requester: User) -> None:
     order = await crud.get_order_by_id(db, order_id)
     if not order:
+        logger.warning(f"ORDER_DELETE_NOT_FOUND | requester_id={requester.id} | order_id={order_id}")
         raise OrderNotFoundError()
 
     await crud.delete_order(db, order_id)
+    logger.info(f"ORDER_DELETED | requester_id={requester.id} | order_id={order_id}")
 
 
 async def export_orders(db: AsyncSession, limit: int, offset: int) -> tuple[str, str]:
