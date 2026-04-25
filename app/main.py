@@ -20,7 +20,7 @@ from app.exceptions import (
     BookNotFoundError,
     OrderNotFoundError,
 )
-from app.handlers import (
+from app.handlers.exceptions import (
     permission_denied_handler,
     insufficient_stock_quantity_handler,
     entity_not_found_handler,
@@ -29,6 +29,7 @@ from app.handlers import (
     book_not_found_handler,
     order_not_found_handler,
 )
+import app.handlers.cache
 
 
 def bookstore_key_builder(

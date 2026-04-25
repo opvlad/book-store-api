@@ -3,13 +3,14 @@ from fastapi_cache import FastAPICache
 from fastapi_cache.decorator import cache
 
 from app.dependencies import sessionDep, get_current_admin
+from app.event_bus import bus
+from app.models import User
 from app.schemas import (
     AuthorResponse,
     AuthorListPaginatedResponse,
     AuthorCreate,
     AuthorUpdate,
 )
-from app.models import User
 from app.services import (
     get_author as service_get_author,
     get_authors as service_get_authors,
@@ -39,7 +40,7 @@ async def create_author(
     db: sessionDep, author: AuthorCreate, _: User = Depends(get_current_admin)
 ):
     author_created = await service_create_author(db, author)
-    await FastAPICache.clear("authors-list")
+    await bus.emit("author.created")
     return author_created
 
 
@@ -51,7 +52,7 @@ async def modify_author(
     _: User = Depends(get_current_admin),
 ):
     author_updated = await service_update_author(db, author_id, author_update)
-    await FastAPICache.clear("authors-list")
+    await bus.emit("author.updated")
     return author_updated
 
 
@@ -60,4 +61,4 @@ async def delete_author(
     db: sessionDep, author_id: int, _: User = Depends(get_current_admin)
 ):
     await service_delete_author(db, author_id)
-    await FastAPICache.clear("authors-list")
+    await bus.emit("author.deleted")
