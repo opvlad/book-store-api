@@ -58,11 +58,11 @@ async def get_users(
 
 async def register_user(db: AsyncSession, user: UserCreate) -> User:
     if await crud.get_user_by_username(db, user.username):
-        logger.warning(f"REG_DUPLICATE | username={user.username}")
+        logger.warning(f"REGISTER_DUPLICATE | username={user.username}")
         raise DuplicateFieldError("Username already exists")
 
     if await crud.get_user_by_email(db, user.email):
-        logger.warning(f"REG_DUPLICATE | email={user.email}")
+        logger.warning(f"REGISTER_DUPLICATE | email={user.email}")
         raise DuplicateFieldError("Email already exists")
 
     user_in_db = UserCreateInDB(
@@ -71,7 +71,7 @@ async def register_user(db: AsyncSession, user: UserCreate) -> User:
     )
     new_user = await crud.create_user(db, user_in_db)
 
-    logger.info(f"USER_REGISTERED | user_id={new_user.id} username={new_user.username}")
+    logger.info(f"REGISTER_SUCCESS | user_id={new_user.id} username={new_user.username}")
 
     return new_user
 
@@ -116,10 +116,11 @@ async def login_user(db: AsyncSession, credentials: LoginForm) -> str:
     db_user = await crud.get_user_by_username(db, credentials.username)
 
     if not db_user:
-        logger.warning(f"LOGIN_FAIL_USER_NOT_FOUND | username={credentials.username}")
+        logger.warning(f"LOGIN_USER_NOT_FOUND | username={credentials.username}")
         raise UserNotFoundError()
 
     if not verify_password(credentials.password, db_user.password_hash):
+        logger.warning(f"LOGIN_INVALID_PASSWORD | user_id={db_user.id}")
         raise UnauthorizedError()
 
     access_token = create_access_token({"id": db_user.id})
