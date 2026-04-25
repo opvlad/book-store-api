@@ -3,7 +3,9 @@ from fastapi_cache import FastAPICache
 from fastapi_cache.decorator import cache
 
 from app.dependencies import sessionDep, get_current_admin
+from app.event_bus import bus
 from app.models import User
+from app.schemas import BookResponse, BookListPaginatedResponse, BookCreate, BookUpdate
 from app.services import (
     get_book as service_get_book,
     get_books as service_get_books,
@@ -11,12 +13,6 @@ from app.services import (
     update_book as service_update_book,
     delete_book as service_delete_book,
 )
-from app.schemas import BookResponse, BookListPaginatedResponse, BookCreate, BookUpdate
-
-from fastapi import Request, Response
-
-
-
 
 
 router = APIRouter()
@@ -39,7 +35,7 @@ async def add_book(
     db: sessionDep, book: BookCreate, _: User = Depends(get_current_admin)
 ):
     book_created = await service_create_book(db, book)
-    await FastAPICache.clear("books-list")
+    await bus.emit("book.created")
     return book_created
 
 
@@ -51,7 +47,7 @@ async def modify_book(
     _: User = Depends(get_current_admin),
 ):
     book_updated = await service_update_book(db, book_id, book_update)
-    await FastAPICache.clear("books-list")
+    await bus.emit("book.updated")
     return book_updated
 
 
@@ -60,4 +56,4 @@ async def delete_book(
     db: sessionDep, book_id: int, _: User = Depends(get_current_admin)
 ):
     await service_delete_book(db, book_id)
-    await FastAPICache.clear("books-list")
+    await bus.emit("book.deleted")
