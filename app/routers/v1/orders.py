@@ -77,16 +77,16 @@ async def modify_order(
     db: sessionDep,
     order_id: int,
     order_update: OrderUpdate,
-    _: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_admin),
 ):
-    return await service_update_order(db, order_id, order_update)
+    return await service_update_order(db, order_id, order_update, requester=admin)
 
 
 @router.delete("/{order_id}", status_code=204)
 async def delete_order(
-    db: sessionDep, order_id: int, _: User = Depends(get_current_admin)
+    db: sessionDep, order_id: int, admin: User = Depends(get_current_admin)
 ):
-    await service_delete_order(db, order_id)
+    await service_delete_order(db, order_id, requester=admin)
 
 
 @router.get("/export/xlsx")

@@ -33,9 +33,9 @@ dev = [
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+addopts = ["--log-disable=asyncio"]
 
 [tool.coverage.report]
-
 omit = [
     "app/main.py",
     "app/database.py",

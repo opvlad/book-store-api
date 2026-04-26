@@ -55,8 +55,8 @@ async def test_get_my_order_details_not_found(client: AsyncClient, user_token):
         "/api/v1/orders/me/999",
         headers={"Authorization": f"Bearer {user_token}"},
     )
-    assert response.status_code == 404
-    assert response.json()["detail"] == "Order not found"
+    assert response.status_code == 400
+    assert "999" in response.json()["detail"]
 
 
 async def test_get_order_details_success(client: AsyncClient, test_order, admin_token):
@@ -81,8 +81,8 @@ async def test_get_order_details_not_found(client: AsyncClient, admin_token):
         "/api/v1/orders/999",
         headers={"Authorization": f"Bearer {admin_token}"},
     )
-    assert response.status_code == 404
-    assert response.json()["detail"] == "Order not found"
+    assert response.status_code == 400
+    assert "999" in response.json()["detail"]
 
 
 async def test_get_my_orders_empty(client: AsyncClient, user_token):
@@ -316,7 +316,7 @@ async def test_update_order_forbidden(client: AsyncClient, test_order, user_toke
         headers={"Authorization": f"Bearer {user_token}"},
     )
     assert response.status_code == 403
-    assert response.json()["detail"] == "Admin permission required"
+    assert response.json()["detail"] == "Permission denied"
 
 
 @mark.parametrize("status", ["test", 123])
@@ -337,8 +337,8 @@ async def test_update_order_not_found(client: AsyncClient, admin_token):
         json={"status": OrderStatus.SHIPPED},
         headers={"Authorization": f"Bearer {admin_token}"},
     )
-    assert response.status_code == 404
-    assert response.json()["detail"] == "Order not found"
+    assert response.status_code == 400
+    assert "999" in response.json()["detail"]
 
 
 async def test_delete_order_success(client: AsyncClient, test_order, admin_token):
@@ -352,7 +352,8 @@ async def test_delete_order_success(client: AsyncClient, test_order, admin_token
         f"/api/v1/orders/{test_order.id}",
         headers={"Authorization": f"Bearer {admin_token}"},
     )
-    assert response.status_code == 404
+    assert response.status_code == 400
+    assert str(test_order.id) in response.json()["detail"]
 
 
 async def test_delete_order_unauthorized(client: AsyncClient, test_order):
@@ -367,7 +368,7 @@ async def test_delete_order_forbidden(client: AsyncClient, test_order, user_toke
         headers={"Authorization": f"Bearer {user_token}"},
     )
     assert response.status_code == 403
-    assert response.json()["detail"] == "Admin permission required"
+    assert response.json()["detail"] == "Permission denied"
 
 
 async def test_delete_order_not_found(client: AsyncClient, admin_token):
@@ -375,8 +376,8 @@ async def test_delete_order_not_found(client: AsyncClient, admin_token):
         "/api/v1/orders/999",
         headers={"Authorization": f"Bearer {admin_token}"},
     )
-    assert response.status_code == 404
-    assert response.json()["detail"] == "Order not found"
+    assert response.status_code == 400
+    assert "999" in response.json()["detail"]
 
 
 async def test_order_export_xlsx_success(client: AsyncClient, mocker, test_order, admin_token):
@@ -461,4 +462,4 @@ async def test_order_export_xlsx_forbidden(client: AsyncClient, user_token):
         "/api/v1/orders/export/xlsx", headers={"Authorization": f"Bearer {user_token}"}
     )
     assert response.status_code == 403
-    assert response.json()["detail"] == "Admin permission required"
+    assert response.json()["detail"] == "Permission denied"

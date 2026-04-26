@@ -91,7 +91,7 @@ class AuthorCreate(BaseModel):
 
     name: str
     bio: str | None = None
-    birth_date: datetime
+    birth_date: date
 
 
 class AuthorUpdate(BaseModel):

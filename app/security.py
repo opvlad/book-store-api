@@ -3,7 +3,7 @@ import bcrypt
 import jwt
 
 
-from app.config import settings
+from app.config.settings import settings
 
 
 def get_password_hash(password: str) -> str:

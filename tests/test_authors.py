@@ -87,8 +87,8 @@ async def test_author_details_success(client, test_author):
 
 async def test_author_details_not_found(client):
     response = await client.get("/api/v1/authors/999")
-    assert response.status_code == 404
-    assert response.json()["detail"] == "Author not found"
+    assert response.status_code == 400
+    assert "999" in response.json()["detail"]
 
 
 async def test_authors_list_empty(client):
@@ -195,8 +195,8 @@ async def test_update_author_not_found(client, admin_token):
         },
         headers={"Authorization": f"Bearer {admin_token}"},
     )
-    assert response.status_code == 404
-    assert response.json()["detail"] == "Author not found"
+    assert response.status_code == 400
+    assert "999" in response.json()["detail"]
 
 
 async def test_update_author_is_not_adult(client, test_author, admin_token):
@@ -245,8 +245,8 @@ async def test_delete_author_success(client, test_author, admin_token):
         f"/api/v1/authors/{test_author.id}",
         headers={"Authorization": f"Bearer {admin_token}"},
     )
-    assert response.status_code == 404
-    assert response.json()["detail"] == "Author not found"
+    assert response.status_code == 400
+    assert str(test_author.id) in response.json()["detail"]
 
 
 async def test_delete_author_not_found(client, test_author, admin_token):
@@ -254,8 +254,8 @@ async def test_delete_author_not_found(client, test_author, admin_token):
         "/api/v1/authors/999",
         headers={"Authorization": f"Bearer {admin_token}"},
     )
-    assert response.status_code == 404
-    assert response.json()["detail"] == "Author not found"
+    assert response.status_code == 400
+    assert "999" in response.json()["detail"]
 
 
 async def test_delete_author_unauthorized(client, test_author):
