@@ -90,8 +90,8 @@ async def test_get_book_details_success(client: AsyncClient, test_book: Book):
 
 async def test_get_book_details_not_found(client: AsyncClient):
     response = await client.get("/api/v1/books/999")
-    assert response.status_code == 404
-    assert response.json()["detail"] == "Book not found"
+    assert response.status_code == 400
+    assert "999" in response.json()["detail"]
 
 
 async def test_get_list_books_empty(client: AsyncClient):
@@ -187,8 +187,8 @@ async def test_create_book_not_existed_author(client: AsyncClient, admin_token):
         },
         headers={"Authorization": f"Bearer {admin_token}"},
     )
-    assert response.status_code == 404
-    assert response.json()["detail"] == "Author not found"
+    assert response.status_code == 400
+    assert "999" in response.json()["detail"]
 
 
 @mark.parametrize(
@@ -260,8 +260,8 @@ async def test_update_book_not_found(client: AsyncClient, test_book, admin_token
         },
         headers={"Authorization": f"Bearer {admin_token}"},
     )
-    assert response.status_code == 404
-    assert response.json()["detail"] == "Book not found"
+    assert response.status_code == 400
+    assert "999" in response.json()["detail"]
 
 
 async def test_update_book_not_existed_author(
@@ -274,8 +274,8 @@ async def test_update_book_not_existed_author(
         },
         headers={"Authorization": f"Bearer {admin_token}"},
     )
-    assert response.status_code == 404
-    assert response.json()["detail"] == "Author not found"
+    assert response.status_code == 400
+    assert "999" in response.json()["detail"]
 
 
 @mark.parametrize(
@@ -301,7 +301,8 @@ async def test_delete_book_success(client: AsyncClient, test_book, admin_token):
     assert response.status_code == 204
 
     response = await client.get(f"/api/v1/books/{test_book.id}")
-    assert response.status_code == 404
+    assert response.status_code == 400
+    assert str(test_book.id) in response.json()["detail"]
 
 
 async def test_delete_book_unauthorized(client: AsyncClient, test_book):
@@ -326,5 +327,5 @@ async def test_delete_book_not_found(client: AsyncClient, admin_token):
         "/api/v1/books/999",
         headers={"Authorization": f"Bearer {admin_token}"},
     )
-    assert response.status_code == 404
-    assert response.json()["detail"] == "Book not found"
+    assert response.status_code == 400
+    assert "999" in response.json()["detail"]

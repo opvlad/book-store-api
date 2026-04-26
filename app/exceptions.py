@@ -34,14 +34,6 @@ class AuthorIsNotAdultError(Exception):
     pass
 
 
-class BookNotFoundError(Exception):
-    pass
-
-
-class OrderNotFoundError(Exception):
-    pass
-
-
 class InvalidTokenError(Exception):
     def __init__(self, detail: str):
         self.detail = detail

@@ -33,8 +33,6 @@ from app.exceptions import (
     DuplicateFieldError,
     UnauthorizedError,
     AuthorIsNotAdultError,
-    BookNotFoundError,
-    OrderNotFoundError,
 )
 
 
@@ -216,7 +214,7 @@ async def delete_author(db: AsyncSession, author_id: int, requester: User) -> No
 async def get_book(db: AsyncSession, book_id: int) -> Book:
     book = await crud.get_book_by_id(db, book_id)
     if not book:
-        raise BookNotFoundError()
+        raise EntityNotFoundError(entity_name="Book", entity_ids=book_id)
     return book
 
 
@@ -245,7 +243,7 @@ async def update_book(
     existing_book = await crud.get_book_by_id(db, book_id)
     if not existing_book:
         logger.warning(f"BOOK_UPDATE_NOT_FOUND | book_id={book_id}")
-        raise BookNotFoundError()
+        raise EntityNotFoundError(entity_name="Book", entity_ids=book_id)
 
     if book_update.author_id is not None:
         existing_author = await crud.get_author_by_id(db, book_update.author_id)
@@ -266,7 +264,7 @@ async def delete_book(db: AsyncSession, book_id: int, requester: User) -> None:
     existing_book = await crud.get_book_by_id(db, book_id)
     if not existing_book:
         logger.warning(f"BOOK_DELETE_NOT_FOUND | book_id={book_id}")
-        raise BookNotFoundError()
+        raise EntityNotFoundError(entity_name="Book", entity_ids=book_id)
 
     await crud.delete_book(db, book_id)
     logger.info(f"BOOK_DELETED | requester_id={requester.id} | book_id={book_id}")
@@ -306,7 +304,7 @@ async def get_order(db: AsyncSession, order_id: int, user: User) -> Order:
     order = await crud.get_order_by_id(db, order_id)
 
     if not order:
-        raise OrderNotFoundError()
+        raise EntityNotFoundError(entity_name="Order", entity_ids=order_id)
 
     if order.user_id != user.id and user.role != UserRole.ADMIN:
         raise PermissionDeniedError(user_id=user.id)
@@ -387,7 +385,7 @@ async def update_order(
         logger.warning(
             f"ORDER_UPDATE_NOT_FOUND | requester_id={requester.id} | order_id={order_id}"
         )
-        raise OrderNotFoundError()
+        raise EntityNotFoundError(entity_name="Order", entity_ids=order_id)
 
     order_updated = await crud.update_order(db, order_id, order_update)
     logger.info(
@@ -401,7 +399,7 @@ async def delete_order(db: AsyncSession, order_id: int, requester: User) -> None
     order = await crud.get_order_by_id(db, order_id)
     if not order:
         logger.warning(f"ORDER_DELETE_NOT_FOUND | requester_id={requester.id} | order_id={order_id}")
-        raise OrderNotFoundError()
+        raise EntityNotFoundError(entity_name="Order", entity_ids=order_id)
 
     await crud.delete_order(db, order_id)
     logger.info(f"ORDER_DELETED | requester_id={requester.id} | order_id={order_id}")

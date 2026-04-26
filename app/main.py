@@ -20,8 +20,6 @@ from app.exceptions import (
     InsufficientStockQuantityError,
     EntityNotFoundError,
     AuthorIsNotAdultError,
-    BookNotFoundError,
-    OrderNotFoundError,
     InvalidTokenError,
 )
 from app.handlers.exceptions import (
@@ -31,8 +29,6 @@ from app.handlers.exceptions import (
     insufficient_stock_quantity_handler,
     entity_not_found_handler,
     author_is_not_adult,
-    book_not_found_handler,
-    order_not_found_handler,
     invalid_token_handler,
     unhandled_exception_handler,
 )
@@ -93,8 +89,6 @@ app.add_exception_handler(
 )
 app.add_exception_handler(EntityNotFoundError, entity_not_found_handler)
 app.add_exception_handler(AuthorIsNotAdultError, author_is_not_adult)
-app.add_exception_handler(BookNotFoundError, book_not_found_handler)
-app.add_exception_handler(OrderNotFoundError, order_not_found_handler)
 app.add_exception_handler(InvalidTokenError, invalid_token_handler)
 app.add_exception_handler(Exception, unhandled_exception_handler)
 

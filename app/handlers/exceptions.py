@@ -10,8 +10,6 @@ from app.exceptions import (
     InsufficientStockQuantityError,
     EntityNotFoundError,
     AuthorIsNotAdultError,
-    BookNotFoundError,
-    OrderNotFoundError,
     InvalidTokenError,
 )
 
@@ -44,14 +42,6 @@ async def entity_not_found_handler(request: Request, exc: EntityNotFoundError):
 
 async def author_is_not_adult(request: Request, exc: AuthorIsNotAdultError):
     return JSONResponse(status_code=400, content={"detail": "Author is not adult"})
-
-
-async def book_not_found_handler(request: Request, exc: BookNotFoundError):
-    return JSONResponse(status_code=404, content={"detail": "Book not found"})
-
-
-async def order_not_found_handler(request: Request, exc: OrderNotFoundError):
-    return JSONResponse(status_code=404, content={"detail": "Order not found"})
 
 
 async def invalid_token_handler(request: Request, exc: InvalidTokenError):
