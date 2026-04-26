@@ -26,7 +26,7 @@ async def get_book_details(db: sessionDep, book_id: int):
 @router.get("", response_model=BookListPaginatedResponse)
 @cache(expire=600, namespace="books-list")
 async def get_list_books(db: sessionDep, limit: int = 100, offset: int = 0):
-    total, items = await service_get_books(db, limit, offset)
+    total, items = await service_get_books(db, limit=limit, offset=offset)
     return {"total": total, "limit": limit, "offset": offset, "items": items}
 
 

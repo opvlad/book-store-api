@@ -32,7 +32,7 @@ async def get_current_user(
 
     user_id = payload.get("id")
     if not user_id:
-        raise InvalidTokenError(detail="Not id in payload")
+        raise InvalidTokenError(detail="No id in payload")
 
     user = await get_user_by_id(db, user_id)
     if not user:

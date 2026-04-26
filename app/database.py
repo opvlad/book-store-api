@@ -30,7 +30,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
             await session.commit()
 
         except SQLAlchemyError as e:
-            logger.error(f"DB error: {type(e).__name__}", exc_info=True)
+            logger.error(f"DB_ERROR | error={type(e).__name__}", exc_info=True)
 
         except Exception:
             await session.rollback()

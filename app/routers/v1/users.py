@@ -31,17 +31,17 @@ async def list_users(
     db: sessionDep,
     offset: int = 0,
     limit: int = 100,
-    _: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_admin),
 ):
-    total, items = await service_get_users(db, offset, limit)
+    total, items = await service_get_users(db, offset=offset, limit=limit)
     return {"total": total, "limit": limit, "offset": offset, "items": items}
 
 
 @router.get("/{user_id}", response_model=UserResponse)
 async def read_user_details(
-    db: sessionDep, user_id: int, _: User = Depends(get_current_admin)
+    db: sessionDep, user_id: int, admin: User = Depends(get_current_admin)
 ):
-    return await service_get_user(db, user_id)
+    return await service_get_user(db, user_id, requester=admin)
 
 
 @router.patch("/{user_id}", response_model=UserResponse)
