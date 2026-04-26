@@ -21,6 +21,7 @@ from app.exceptions import (
     AuthorIsNotAdultError,
     BookNotFoundError,
     OrderNotFoundError,
+    InvalidTokenError,
 )
 from app.handlers.exceptions import (
     permission_denied_handler,
@@ -30,6 +31,7 @@ from app.handlers.exceptions import (
     author_is_not_adult,
     book_not_found_handler,
     order_not_found_handler,
+    invalid_token_handler,
     unhandled_exception_handler,
 )
 import app.handlers.cache
@@ -47,7 +49,7 @@ def bookstore_key_builder(
     response: Response = None,
     args: tuple = None,
     kwargs: dict = None,
-):
+) -> str:
     copy_kwargs = kwargs.copy()
 
     copy_kwargs.pop("db", None)
@@ -90,6 +92,7 @@ app.add_exception_handler(AuthorNotFoundError, author_not_found_handler)
 app.add_exception_handler(AuthorIsNotAdultError, author_is_not_adult)
 app.add_exception_handler(BookNotFoundError, book_not_found_handler)
 app.add_exception_handler(OrderNotFoundError, order_not_found_handler)
+app.add_exception_handler(InvalidTokenError, invalid_token_handler)
 app.add_exception_handler(Exception, unhandled_exception_handler)
 
 

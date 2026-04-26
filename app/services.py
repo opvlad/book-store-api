@@ -308,7 +308,7 @@ async def get_order(db: AsyncSession, order_id: int, user: User) -> Order:
         raise OrderNotFoundError()
 
     if order.user_id != user.id and user.role != UserRole.ADMIN:
-        raise PermissionDeniedError()
+        raise PermissionDeniedError(user_id=user.id)
 
     return order
 

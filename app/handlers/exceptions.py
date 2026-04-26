@@ -11,6 +11,7 @@ from app.exceptions import (
     AuthorIsNotAdultError,
     BookNotFoundError,
     OrderNotFoundError,
+    InvalidTokenError,
 )
 
 
@@ -18,7 +19,8 @@ logger = logging.getLogger(__name__)
 
 
 async def permission_denied_handler(request: Request, exc: PermissionDeniedError):
-    return JSONResponse(status_code=403, content={"detail": "Permission denied"})
+    logger.warning(f"PERMISSION_DENIED | user_id={exc.user_id}")
+    return JSONResponse(status_code=403, content={"detail": str(exc)})
 
 
 async def insufficient_stock_quantity_handler(
@@ -45,6 +47,12 @@ async def book_not_found_handler(request: Request, exc: BookNotFoundError):
 
 async def order_not_found_handler(request: Request, exc: OrderNotFoundError):
     return JSONResponse(status_code=404, content={"detail": "Order not found"})
+
+
+async def invalid_token_handler(request: Request, exc: InvalidTokenError):
+    logger.warning(f"TOKEN_INVALID | {request.method} {request.url.path} | ip={request.client.host} | error="
+                   f"{exc.details}")
+    return JSONResponse(status_code=401, content={"detail": str(exc)})
 
 
 async def unhandled_exception_handler(request: Request, exc: Exception):

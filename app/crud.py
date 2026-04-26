@@ -121,7 +121,7 @@ async def get_book_by_id(db: AsyncSession, book_id: int) -> Book | None:
 
 async def get_books_by_ids(db: AsyncSession, book_ids: list[int]) -> list[Book]:
     result = await db.execute(select(Book).where(Book.id.in_(book_ids)))
-    return result.scalars().all()
+    return list(result.scalars().all())
 
 
 async def get_books(
@@ -194,7 +194,7 @@ async def get_orders(
     return total, list(items.scalars().all())
 
 
-async def get_orders_stream(db: AsyncSession, limit: int, offset: int) -> AsyncScalarResult:
+async def get_orders_stream(db: AsyncSession, limit: int, offset: int) -> AsyncScalarResult[Order]:
     stmt = select(Order).order_by(Order.id).offset(offset).limit(limit).execution_options(yield_per=100)
     return (await db.stream(stmt)).scalars()
 

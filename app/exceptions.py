@@ -13,7 +13,10 @@ class UnauthorizedError(Exception):
 
 
 class PermissionDeniedError(Exception):
-    pass
+    def __init__(self, user_id: int):
+        self.user_id = user_id
+        message = "Permission denied"
+        super().__init__(message)
 
 
 class EntityNotFoundError(Exception):
@@ -42,3 +45,9 @@ class BookNotFoundError(Exception):
 class OrderNotFoundError(Exception):
     pass
 
+
+class InvalidTokenError(Exception):
+    def __init__(self, details: str):
+        self.details = details
+        message = "Invalid token"
+        super().__init__(message)
