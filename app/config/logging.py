@@ -1,3 +1,4 @@
+import os
 import logging.config
 
 
@@ -54,5 +55,5 @@ config_dict = {
     }
 }
 
-
+os.makedirs("logs", exist_ok=True)
 logging.config.dictConfig(config_dict)
