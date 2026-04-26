@@ -9,7 +9,6 @@ from app.exceptions import (
     PermissionDeniedError,
     InsufficientStockQuantityError,
     EntityNotFoundError,
-    AuthorNotFoundError,
     AuthorIsNotAdultError,
     BookNotFoundError,
     OrderNotFoundError,
@@ -41,10 +40,6 @@ async def insufficient_stock_quantity_handler(
 
 async def entity_not_found_handler(request: Request, exc: EntityNotFoundError):
     return JSONResponse(status_code=400, content={"detail": str(exc)})
-
-
-async def author_not_found_handler(request: Request, exc: AuthorNotFoundError):
-    return JSONResponse(status_code=404, content={"detail": "Author not found"})
 
 
 async def author_is_not_adult(request: Request, exc: AuthorIsNotAdultError):

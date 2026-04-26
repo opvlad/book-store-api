@@ -65,7 +65,7 @@ async def clear_cache():
 
 @pytest.fixture(autouse=True, scope="session")
 async def setup_logging():
-    logging.disable(logging.CRITICAL)
+    logging.disable(logging.ERROR)
 
 
 @pytest.fixture()

@@ -66,8 +66,8 @@ async def test_user_details_not_found(client: AsyncClient, admin_token):
         "/api/v1/users/999",
         headers={"Authorization": f"Bearer {admin_token}"},
     )
-    assert response.status_code == 404
-    assert response.json() == {"detail": "User not found"}
+    assert response.status_code == 400
+    assert "999" in response.json()["detail"]
 
 
 async def test_user_details_forbidden(client: AsyncClient, test_user):
@@ -204,8 +204,8 @@ async def test_user_update_not_found(client: AsyncClient, admin_token):
         headers={"Authorization": f"Bearer {admin_token}"},
         json={"status": "loyal"},
     )
-    assert response.status_code == 404
-    assert response.json() == {"detail": "User not found"}
+    assert response.status_code == 400
+    assert "999" in response.json()["detail"]
 
 
 @mark.parametrize("user_status", ["123", "not", None])
@@ -229,8 +229,8 @@ async def test_delete_user_success(test_user, client: AsyncClient, admin_token):
         f"/api/v1/users/{test_user.id}",
         headers={"Authorization": f"Bearer {admin_token}"},
     )
-    assert response.status_code == 404
-    assert response.json() == {"detail": "User not found"}
+    assert response.status_code == 400
+    assert str(test_user.id) in response.json()["detail"]
 
 
 async def test_delete_user_not_found(client: AsyncClient, admin_token):
@@ -238,5 +238,5 @@ async def test_delete_user_not_found(client: AsyncClient, admin_token):
         "/api/v1/users/999",
         headers={"Authorization": f"Bearer {admin_token}"},
     )
-    assert response.status_code == 404
-    assert response.json() == {"detail": "User not found"}
+    assert response.status_code == 400
+    assert "999" in response.json()["detail"]

@@ -6,7 +6,6 @@ from app.services import (
     login_user as service_login_user,
     register_user as service_register_user,
 )
-from app.exceptions import UserNotFoundError, UnauthorizedError, DuplicateFieldError
 
 
 router = APIRouter()

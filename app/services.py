@@ -30,10 +30,8 @@ from app.exceptions import (
     PermissionDeniedError,
     InsufficientStockQuantityError,
     EntityNotFoundError,
-    UserNotFoundError,
     DuplicateFieldError,
     UnauthorizedError,
-    AuthorNotFoundError,
     AuthorIsNotAdultError,
     BookNotFoundError,
     OrderNotFoundError,
@@ -47,8 +45,11 @@ logger = logging.getLogger(__name__)
 
 
 async def get_user(db: AsyncSession, user_id: int) -> User | None:
-    return await crud.get_user_by_id(db, user_id)
-
+    user = await crud.get_user_by_id(db, user_id)
+    if not user:
+        logger.warning(f"USER_NOT_FOUND | user_id={user_id}")
+        raise EntityNotFoundError(entity_name="User", entity_ids=user_id)
+    return user
 
 async def get_users(
     db: AsyncSession, offset: int, limit: int
@@ -85,7 +86,7 @@ async def update_user(
     existing_user = await crud.get_user_by_id(db, user_id)
     if not existing_user:
         logger.warning(f"USER_UPDATE_NOT_FOUND | user_id={user_id}")
-        raise UserNotFoundError()
+        raise EntityNotFoundError(entity_name="User", entity_ids=user_id)
 
     updated_data = user.model_dump(exclude_unset=True)
 
@@ -117,7 +118,7 @@ async def delete_user(
 ) -> None:
     if not await crud.get_user_by_id(db, user_id):
         logger.warning(f"USER_DELETE_NOT_FOUND | user_id={user_id}")
-        raise UserNotFoundError()
+        raise EntityNotFoundError(entity_name="User", entity_ids=user_id)
 
     await crud.delete_user(db, user_id)
     logger.info(f"USER_DELETED | requester_id={requester.id} | user_id={user_id}")
@@ -155,7 +156,7 @@ def is_adult(birth_date: date, adulthood_age: int = 18) -> bool:
 async def get_author(db: AsyncSession, author_id: int) -> Author:
     result = await crud.get_author_by_id(db, author_id)
     if not result:
-        raise AuthorNotFoundError()
+        raise EntityNotFoundError(entity_name="Author", entity_ids=author_id)
     return result
 
 
@@ -185,7 +186,7 @@ async def update_author(
     existing_author = await crud.get_author_by_id(db, author_id)
     if not existing_author:
         logger.warning(f"AUTHOR_UPDATE_NOT_FOUND | author_id={author_id}")
-        raise AuthorNotFoundError()
+        raise EntityNotFoundError(entity_name="Author", entity_ids=author_id)
 
     if author.birth_date and not is_adult(author.birth_date):
         logger.warning(f"AUTHOR_UPDATE_UNDERAGE | birth_date={author.birth_date}")
@@ -203,7 +204,7 @@ async def delete_author(db: AsyncSession, author_id: int, requester: User) -> No
     existing_author = await crud.get_author_by_id(db, author_id)
     if not existing_author:
         logger.warning(f"AUTHOR_DELETE_NOT_FOUND | author_id={author_id}")
-        raise AuthorNotFoundError()
+        raise EntityNotFoundError(entity_name="Author", entity_ids=author_id)
 
     await crud.delete_author(db, author_id)
     logger.info(f"AUTHOR_DELETED | requester_id={requester.id} | author_id={author_id}")
@@ -229,7 +230,7 @@ async def create_book(db: AsyncSession, book: BookCreate, requester: User) -> Bo
     existing_author = await crud.get_author_by_id(db, book.author_id)
     if not existing_author:
         logger.warning(f"BOOK_CREATE_AUTHOR_NOT_FOUND | author_id={book.author_id}")
-        raise AuthorNotFoundError()
+        raise EntityNotFoundError(entity_name="Author", entity_ids=book.author_id)
 
     book_created = await crud.create_book(db, book)
     logger.info(
@@ -252,7 +253,7 @@ async def update_book(
             logger.warning(
                 f"BOOK_UPDATE_AUTHOR_NOT_FOUND | author_id={book_update.author_id}"
             )
-            raise AuthorNotFoundError()
+            raise EntityNotFoundError(entity_name="Author", entity_ids=book_update.author_id)
 
     book_updated = await crud.update_book(db, book_id, book_update)
     logger.info(

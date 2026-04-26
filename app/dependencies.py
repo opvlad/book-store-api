@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.models import User, UserRole
 from app.security import decode_token
-from app.services import get_user as service_get_user
+from app.crud import get_user_by_id
 from app.exceptions import InvalidTokenError, PermissionDeniedError
 
 
@@ -34,7 +34,7 @@ async def get_current_user(
     if not user_id:
         raise InvalidTokenError(detail="Not id in payload")
 
-    user = await service_get_user(db, user_id)
+    user = await get_user_by_id(db, user_id)
     if not user:
         raise InvalidTokenError(detail=f"User with id {user_id} not found")
 

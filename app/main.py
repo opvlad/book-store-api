@@ -19,7 +19,6 @@ from app.exceptions import (
     PermissionDeniedError,
     InsufficientStockQuantityError,
     EntityNotFoundError,
-    AuthorNotFoundError,
     AuthorIsNotAdultError,
     BookNotFoundError,
     OrderNotFoundError,
@@ -31,7 +30,6 @@ from app.handlers.exceptions import (
     permission_denied_handler,
     insufficient_stock_quantity_handler,
     entity_not_found_handler,
-    author_not_found_handler,
     author_is_not_adult,
     book_not_found_handler,
     order_not_found_handler,
@@ -94,7 +92,6 @@ app.add_exception_handler(
     InsufficientStockQuantityError, insufficient_stock_quantity_handler
 )
 app.add_exception_handler(EntityNotFoundError, entity_not_found_handler)
-app.add_exception_handler(AuthorNotFoundError, author_not_found_handler)
 app.add_exception_handler(AuthorIsNotAdultError, author_is_not_adult)
 app.add_exception_handler(BookNotFoundError, book_not_found_handler)
 app.add_exception_handler(OrderNotFoundError, order_not_found_handler)

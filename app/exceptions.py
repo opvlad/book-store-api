@@ -24,18 +24,10 @@ class PermissionDeniedError(Exception):
 
 
 class EntityNotFoundError(Exception):
-    def __init__(self, entity_name: str, entity_ids: list[id]):
+    def __init__(self, entity_name: str, entity_ids: int | list[int]):
         self.entity_name = entity_name
         self.entity_ids = entity_ids
         super().__init__(f"{entity_name}s with ids {entity_ids} not found")
-
-
-class UserNotFoundError(Exception):
-    pass
-
-
-class AuthorNotFoundError(Exception):
-    pass
 
 
 class AuthorIsNotAdultError(Exception):
