@@ -14,11 +14,8 @@ router = APIRouter()
 
 @router.post("/login")
 async def login(db: sessionDep, credentials: LoginForm):
-    try:
-        access_token = await service_login_user(db, credentials)
-        return Token(access_token=access_token)
-    except (UserNotFoundError, UnauthorizedError):
-        raise HTTPException(status_code=401, detail="Incorrect username or password")
+    access_token = await service_login_user(db, credentials)
+    return Token(access_token=access_token)
 
 
 @router.post("/register", response_model=UserResponse)

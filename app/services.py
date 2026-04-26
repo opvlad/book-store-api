@@ -128,7 +128,7 @@ async def login_user(db: AsyncSession, credentials: LoginForm) -> str:
 
     if not db_user:
         logger.warning(f"LOGIN_USER_NOT_FOUND | username={credentials.username}")
-        raise UserNotFoundError()
+        raise UnauthorizedError()
 
     if not verify_password(credentials.password, db_user.password_hash):
         logger.warning(f"LOGIN_INVALID_PASSWORD | user_id={db_user.id}")

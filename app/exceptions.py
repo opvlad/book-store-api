@@ -11,7 +11,9 @@ class InsufficientStockQuantityError(Exception):
 
 
 class UnauthorizedError(Exception):
-    pass
+    def __init__(self):
+        message = "Incorrect username or password"
+        super().__init__(message)
 
 
 class PermissionDeniedError(Exception):

@@ -4,6 +4,7 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 
 from app.exceptions import (
+    UnauthorizedError,
     DuplicateFieldError,
     PermissionDeniedError,
     InsufficientStockQuantityError,
@@ -17,6 +18,10 @@ from app.exceptions import (
 
 
 logger = logging.getLogger(__name__)
+
+
+async def unauthorized_handler(request: Request, exc: UnauthorizedError):
+    return JSONResponse(status_code=401, content={"detail": str(exc)})
 
 
 async def duplicate_field_handler(request: Request, exc: DuplicateFieldError):

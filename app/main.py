@@ -14,6 +14,7 @@ from app.routers.v1.books import router as books_router
 from app.routers.v1.orders import router as orders_router
 
 from app.exceptions import (
+    UnauthorizedError,
     DuplicateFieldError,
     PermissionDeniedError,
     InsufficientStockQuantityError,
@@ -25,6 +26,7 @@ from app.exceptions import (
     InvalidTokenError,
 )
 from app.handlers.exceptions import (
+    unauthorized_handler,
     duplicate_field_handler,
     permission_denied_handler,
     insufficient_stock_quantity_handler,
@@ -85,6 +87,7 @@ app.include_router(books_router, prefix="/api/v1/books", tags=["books"])
 app.include_router(orders_router, prefix="/api/v1/orders", tags=["orders"])
 
 
+app.add_exception_handler(UnauthorizedError, unauthorized_handler)
 app.add_exception_handler(DuplicateFieldError, duplicate_field_handler)
 app.add_exception_handler(PermissionDeniedError, permission_denied_handler)
 app.add_exception_handler(
