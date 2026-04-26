@@ -38,5 +38,8 @@ test-orders:
 test-users:
 	@$(BIN)/pytest -v tests/test_users.py
 
+test-errors:
+	@$(BIN)/pytest -v tests/test_error_handling.py
+
 coverage:
 	@$(BIN)/pytest --cov=app --cov-report=term-missing

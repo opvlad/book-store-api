@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from time import perf_counter
 
 from fastapi import FastAPI, Response, Request
+from fastapi.responses import JSONResponse
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 import redis.asyncio as redis
@@ -30,7 +31,6 @@ from app.handlers.exceptions import (
     entity_not_found_handler,
     author_is_not_adult,
     invalid_token_handler,
-    unhandled_exception_handler,
 )
 import app.handlers.cache
 import app.config.logging
@@ -90,13 +90,19 @@ app.add_exception_handler(
 app.add_exception_handler(EntityNotFoundError, entity_not_found_handler)
 app.add_exception_handler(AuthorIsNotAdultError, author_is_not_adult)
 app.add_exception_handler(InvalidTokenError, invalid_token_handler)
-app.add_exception_handler(Exception, unhandled_exception_handler)
 
 
 @app.middleware("http")
 async def log_request(request: Request, call_next):
     start_time = perf_counter()
-    response = await call_next(request)
+    try:
+        response = await call_next(request)
+    except Exception as e:
+        logger.error(
+            f"UNHANDLED_ERROR | {request.method} {request.url.path} | ip={request.client.host} | error={e}",
+            exc_info=True,
+        )
+        return JSONResponse(status_code=500, content={"detail": "Internal server error"})
     process_time = perf_counter() - start_time
     logger.info(
         f"{request.method} {request.url.path} | {response.status_code} | ip={request.client.host} pt="

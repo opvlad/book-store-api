@@ -31,7 +31,9 @@ class EntityNotFoundError(Exception):
 
 
 class AuthorIsNotAdultError(Exception):
-    pass
+    def __init__(self):
+        message = "Author is not adult"
+        super().__init__(message)
 
 
 class InvalidTokenError(Exception):
