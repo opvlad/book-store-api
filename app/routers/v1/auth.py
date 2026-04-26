@@ -23,7 +23,4 @@ async def login(db: sessionDep, credentials: LoginForm):
 
 @router.post("/register", response_model=UserResponse)
 async def register_user(db: sessionDep, user: UserCreate):
-    try:
-        return await service_register_user(db, user)
-    except DuplicateFieldError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    return await service_register_user(db, user)

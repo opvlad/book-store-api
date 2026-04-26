@@ -80,7 +80,7 @@ async def update_user(
     db: AsyncSession,
     user_id: int,
     user: UserUpdate | UserUpdateAsAdmin,
-    requester: User | None = None,
+    requester: User,
 ) -> User:
     existing_user = await crud.get_user_by_id(db, user_id)
     if not existing_user:

@@ -1,3 +1,4 @@
+import logging
 from collections.abc import AsyncGenerator
 
 import pytest
@@ -59,7 +60,12 @@ async def setup_cache():
 @pytest.fixture(autouse=True, scope="function")
 async def clear_cache():
     backed = FastAPICache().get_backend()
-    backed._store.clear() # noqa
+    backed._store.clear()  # noqa
+
+
+@pytest.fixture(autouse=True, scope="session")
+async def setup_logging():
+    logging.disable(logging.CRITICAL)
 
 
 @pytest.fixture()

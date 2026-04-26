@@ -1,5 +1,7 @@
 class DuplicateFieldError(Exception):
-    pass
+    def __init__(self, message: str):
+        self.message = message
+        super().__init__(message)
 
 
 class InsufficientStockQuantityError(Exception):
@@ -47,7 +49,7 @@ class OrderNotFoundError(Exception):
 
 
 class InvalidTokenError(Exception):
-    def __init__(self, details: str):
-        self.details = details
+    def __init__(self, detail: str):
+        self.detail = detail
         message = "Invalid token"
         super().__init__(message)

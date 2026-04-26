@@ -4,6 +4,7 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 
 from app.exceptions import (
+    DuplicateFieldError,
     PermissionDeniedError,
     InsufficientStockQuantityError,
     EntityNotFoundError,
@@ -16,6 +17,10 @@ from app.exceptions import (
 
 
 logger = logging.getLogger(__name__)
+
+
+async def duplicate_field_handler(request: Request, exc: DuplicateFieldError):
+    return JSONResponse(status_code=400, content={"detail": str(exc)})
 
 
 async def permission_denied_handler(request: Request, exc: PermissionDeniedError):
@@ -51,7 +56,7 @@ async def order_not_found_handler(request: Request, exc: OrderNotFoundError):
 
 async def invalid_token_handler(request: Request, exc: InvalidTokenError):
     logger.warning(f"TOKEN_INVALID | {request.method} {request.url.path} | ip={request.client.host} | error="
-                   f"{exc.details}")
+                   f"{exc.detail}")
     return JSONResponse(status_code=401, content={"detail": str(exc)})
 
 

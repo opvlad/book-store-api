@@ -172,7 +172,7 @@ async def test_create_book_forbidden(client: AsyncClient, test_author, user_toke
         headers={"Authorization": f"Bearer {user_token}"},
     )
     assert response.status_code == 403
-    assert response.json()["detail"] == "Admin permission required"
+    assert response.json()["detail"] == "Permission denied"
 
 
 async def test_create_book_not_existed_author(client: AsyncClient, admin_token):
@@ -249,7 +249,7 @@ async def test_update_book_forbidden(client: AsyncClient, test_book, user_token)
         headers={"Authorization": f"Bearer {user_token}"},
     )
     assert response.status_code == 403
-    assert response.json()["detail"] == "Admin permission required"
+    assert response.json()["detail"] == "Permission denied"
 
 
 async def test_update_book_not_found(client: AsyncClient, test_book, admin_token):
@@ -318,7 +318,7 @@ async def test_delete_book_forbidden(client: AsyncClient, test_book, user_token)
         headers={"Authorization": f"Bearer {user_token}"},
     )
     assert response.status_code == 403
-    assert response.json()["detail"] == "Admin permission required"
+    assert response.json()["detail"] == "Permission denied"
 
 
 async def test_delete_book_not_found(client: AsyncClient, admin_token):

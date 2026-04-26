@@ -316,7 +316,7 @@ async def test_update_order_forbidden(client: AsyncClient, test_order, user_toke
         headers={"Authorization": f"Bearer {user_token}"},
     )
     assert response.status_code == 403
-    assert response.json()["detail"] == "Admin permission required"
+    assert response.json()["detail"] == "Permission denied"
 
 
 @mark.parametrize("status", ["test", 123])
@@ -367,7 +367,7 @@ async def test_delete_order_forbidden(client: AsyncClient, test_order, user_toke
         headers={"Authorization": f"Bearer {user_token}"},
     )
     assert response.status_code == 403
-    assert response.json()["detail"] == "Admin permission required"
+    assert response.json()["detail"] == "Permission denied"
 
 
 async def test_delete_order_not_found(client: AsyncClient, admin_token):
@@ -461,4 +461,4 @@ async def test_order_export_xlsx_forbidden(client: AsyncClient, user_token):
         "/api/v1/orders/export/xlsx", headers={"Authorization": f"Bearer {user_token}"}
     )
     assert response.status_code == 403
-    assert response.json()["detail"] == "Admin permission required"
+    assert response.json()["detail"] == "Permission denied"

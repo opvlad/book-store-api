@@ -34,7 +34,7 @@ async def test_user_read_me_invalid_token_payload(client: AsyncClient):
         "/api/v1/users/me", headers={"Authorization": f"Bearer {invalid_token}"}
     )
     assert response.status_code == 401
-    assert response.json() == {"detail": "Invalid token payload"}
+    assert response.json()["detail"] == "Invalid token"
 
 
 async def test_user_read_me_not_found(client: AsyncClient):
@@ -43,7 +43,7 @@ async def test_user_read_me_not_found(client: AsyncClient):
         "/api/v1/users/me", headers={"Authorization": f"Bearer {token}"}
     )
     assert response.status_code == 401
-    assert response.json() == {"detail": "User not found"}
+    assert response.json()["detail"] == "Invalid token"
 
 
 async def test_user_details_success(test_user, admin_token, client: AsyncClient):
@@ -77,7 +77,7 @@ async def test_user_details_forbidden(client: AsyncClient, test_user):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 403
-    assert response.json() == {"detail": "Admin permission required"}
+    assert response.json()["detail"] == "Permission denied"
 
 
 async def test_list_users_contains_only_admin(client: AsyncClient, admin_token):
@@ -148,7 +148,7 @@ async def test_update_profile_not_found(client: AsyncClient):
         "/api/v1/users/me", headers={"Authorization": f"Bearer {token}"}
     )
     assert response.status_code == 401
-    assert response.json() == {"detail": "User not found"}
+    assert response.json()["detail"] == "Invalid token"
 
 
 async def test_update_profile_duplicated_username(

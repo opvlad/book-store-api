@@ -24,10 +24,7 @@ async def read_profile(user: User = Depends(get_current_user)):
 async def update_profile(
     db: sessionDep, user_update: UserUpdate, user: User = Depends(get_current_user)
 ):
-    try:
-        return await service_update_user(db, user.id, user_update)
-    except DuplicateFieldError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    return await service_update_user(db, user.id, user_update, requester=user)
 
 
 @router.get("", response_model=UserListPaginatedResponse)

@@ -28,15 +28,15 @@ async def get_current_user(
     payload = decode_token(token)
 
     if not payload:
-        raise InvalidTokenError(details="Invalid token")
+        raise InvalidTokenError(detail="Invalid token")
 
     user_id = payload.get("id")
     if not user_id:
-        raise InvalidTokenError(details="Not id in payload")
+        raise InvalidTokenError(detail="Not id in payload")
 
     user = await service_get_user(db, user_id)
     if not user:
-        raise InvalidTokenError(details=f"User with id {user_id} not found")
+        raise InvalidTokenError(detail=f"User with id {user_id} not found")
 
     return user
 
