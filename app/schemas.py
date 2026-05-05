@@ -111,7 +111,7 @@ class BookResponse(BaseModel):
     id: int
     title: str
     description: str | None = None
-    price: float
+    price: Decimal
     stock_quantity: int
     author_id: int
 
