@@ -17,6 +17,6 @@ async def login(db: sessionDep, credentials: LoginForm):
     return Token(access_token=access_token)
 
 
-@router.post("/register", response_model=UserResponse)
+@router.post("/register", response_model=UserResponse, status_code=201)
 async def register_user(db: sessionDep, user: UserCreate):
     return await service_register_user(db, user)
