@@ -124,6 +124,8 @@ class BookListPaginatedResponse(BaseModel):
 
 
 class BookCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     title: str = Field(..., min_length=1, max_length=255)
     description: str | None = None
     price: Decimal = Field(..., gt=0)
@@ -132,6 +134,8 @@ class BookCreate(BaseModel):
 
 
 class BookUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     title: str | None = Field(default=None, min_length=1, max_length=255)
     description: str | None = None
     price: Decimal | None = Field(default=None, gt=0)
