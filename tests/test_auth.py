@@ -30,7 +30,7 @@ async def test_login_wrong_password(client: AsyncClient, test_user):
 async def test_register_success(client: AsyncClient):
     user = {"username": "test", "email": "example@test.com", "password": "secret"}
     response = await client.post("/api/v1/auth/register", json=user)
-    assert response.status_code == 200
+    assert response.status_code == 201
 
     data = response.json()
     assert data["username"] == user["username"]

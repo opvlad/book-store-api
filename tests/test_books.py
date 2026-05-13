@@ -1,5 +1,6 @@
 from pytest import mark
 from httpx import AsyncClient, Response
+from decimal import Decimal
 
 from app.models import Book
 from app.schemas import BookResponse
@@ -83,7 +84,7 @@ async def test_get_book_details_success(client: AsyncClient, test_book: Book):
     data = response.json()
     assert data["title"] == test_book.title
     assert data["description"] == test_book.description
-    assert data["price"] == float(test_book.price)
+    assert Decimal(data["price"]) == test_book.price
     assert data["stock_quantity"] == test_book.stock_quantity
     assert data["author_id"] == test_book.author_id
 
@@ -139,7 +140,7 @@ async def test_create_book_success(client: AsyncClient, test_author, admin_token
     data = response.json()
     assert data["title"] == book["title"]
     assert data["description"] == book["description"]
-    assert data["price"] == book["price"]
+    assert Decimal(data["price"]) == Decimal(book["price"])
     assert data["stock_quantity"] == book["stock_quantity"]
     assert data["author_id"] == book["author_id"]
 
@@ -223,7 +224,7 @@ async def test_update_book_success(client: AsyncClient, test_book, admin_token):
     data = response.json()
     assert data["title"] == book_update["title"]
     assert data["description"] == book_update["description"]
-    assert data["price"] == test_book.price
+    assert Decimal(data["price"]) == test_book.price
     assert data["stock_quantity"] == test_book.stock_quantity
     assert data["author_id"] == test_book.author_id
 
