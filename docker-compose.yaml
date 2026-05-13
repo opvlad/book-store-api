@@ -35,6 +35,23 @@ services:
       redis:
         condition: service_started
 
+  tests:
+    build: .
+    container_name: book-store-api-tests
+    profiles:
+      ["testing"]
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/bookstore
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command:
+      sh -c "uv run pytest -v"
+
 
 volumes:
   postgres_data:
