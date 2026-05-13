@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     database_url: str = (
         "postgresql+asyncpg://postgres:postgres@localhost:5432/bookstore"
     )
+    redis_url: str = "redis://localhost:6379"
     secret_key: str = "dev-secret-key-change-this-later"
     access_token_expire_minutes: int = 30
     algorithm: str = "HS256"

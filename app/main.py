@@ -13,6 +13,7 @@ from app.routers.v1.auth import router as auth_router
 from app.routers.v1.authors import router as authors_router
 from app.routers.v1.books import router as books_router
 from app.routers.v1.orders import router as orders_router
+from app.config.settings import settings
 
 from app.exceptions import (
     UnauthorizedError,
@@ -59,7 +60,7 @@ def bookstore_key_builder(
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    redis_client = redis.from_url("redis://localhost", decode_responses=False)
+    redis_client = redis.from_url(settings.redis_url, decode_responses=False)
     FastAPICache.init(
         RedisBackend(redis_client),
         prefix="bookstore",
