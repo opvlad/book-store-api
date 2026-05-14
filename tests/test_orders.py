@@ -199,16 +199,17 @@ async def test_get_orders_unauthorized(client: AsyncClient):
     assert response.json()["detail"] == "Not authenticated"
 
 
-@mark.parametrize("quantity", [1, 6, 21])
 async def test_create_order_success(
-    client: AsyncClient, test_book, test_other_book, test_user, quantity
+    client: AsyncClient, test_book, test_other_book, test_user
 ):
     user_token = create_access_token(data={"id": test_user.id})
     items = [
-        {"book_id": test_book.id, "quantity": quantity},
-        {"book_id": test_other_book.id, "quantity": quantity},
+        {"book_id": test_book.id, "quantity": 10},
+        {"book_id": test_other_book.id, "quantity": 4},
     ]
     order = {"items": items, "note": "very important"}
+    initial_stock_qty_book_1 = test_book.stock_quantity
+    initial_stock_qty_book_2 = test_other_book.stock_quantity
 
     response = await client.post(
         "/api/v1/orders",
@@ -226,6 +227,8 @@ async def test_create_order_success(
         + test_other_book.price * items[1]["quantity"]
     )
     assert data["note"] == order["note"]
+    assert test_book.stock_quantity == initial_stock_qty_book_1 - items[0]["quantity"]
+    assert test_other_book.stock_quantity == initial_stock_qty_book_2 - items[1]["quantity"]
 
 
 async def test_create_order_unauthorized(client: AsyncClient, test_book):

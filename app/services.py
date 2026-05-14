@@ -359,6 +359,10 @@ async def create_order(db: AsyncSession, order: OrderCreate, user: User) -> Orde
         )
         raise InsufficientStockQuantityError(book_ids=insufficient_stock_qty_book_ids)
 
+    for book in books:
+        new_stock_quantity = book.stock_quantity - items_map[book.id]
+        await crud.update_book(db, book.id, BookUpdate(stock_quantity=new_stock_quantity))
+
     total_amount = Decimal(
         sum([items_map[book_id] * book.price for book_id, book in books_map.items()])
     )
