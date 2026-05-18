@@ -1,5 +1,12 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
+*.py[codz]
+
+# redis
+*.rdb
+
+# logs
+*.log
 
 # Distribution / packaging
 build/
@@ -24,7 +31,7 @@ venv/
 .idea/
 
 # Visual Studio Code
- .vscode/
+.vscode/
 
 # Ruff stuff:
 .ruff_cache/

@@ -1,0 +1,468 @@
+from decimal import Decimal
+from io import BytesIO
+import os
+
+from httpx import AsyncClient, Response
+from pytest import mark
+from openpyxl import load_workbook
+
+import app.routers.v1.orders as orders_router
+import app.crud as crud
+from app.security import create_access_token
+from app.models import Order, OrderStatus, DeliveryType
+from app.schemas import OrderResponse, OrderAdminResponse
+
+
+def assert_order_response_data(response: Response, order: Order, response_schema):
+    response_data = response_schema.model_validate(response.json())
+    db_data = response_schema.model_validate(order)
+
+    assert response_data == db_data
+
+
+async def test_get_my_order_details_success(client: AsyncClient, test_order):
+    owner_token = create_access_token(data={"id": test_order.user_id})
+    response = await client.get(
+        f"/api/v1/orders/me/{test_order.id}",
+        headers={"Authorization": f"Bearer {owner_token}"},
+    )
+    assert response.status_code == 200
+    assert_order_response_data(response, test_order, OrderResponse)
+
+
+async def test_get_my_order_details_unauthorized(client: AsyncClient, test_order):
+    response = await client.get(
+        f"/api/v1/orders/me/{test_order.id}",
+    )
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Not authenticated"
+
+
+async def test_get_my_order_details_not_own(
+    client: AsyncClient, test_order, test_other_user
+):
+    not_owner_token = create_access_token(data={"id": test_other_user.id})
+    response = await client.get(
+        f"/api/v1/orders/me/{test_order.id}",
+        headers={"Authorization": f"Bearer {not_owner_token}"},
+    )
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Permission denied"
+
+
+async def test_get_my_order_details_not_found(client: AsyncClient, user_token):
+    response = await client.get(
+        "/api/v1/orders/me/999",
+        headers={"Authorization": f"Bearer {user_token}"},
+    )
+    assert response.status_code == 400
+    assert "999" in response.json()["detail"]
+
+
+async def test_get_order_details_success(client: AsyncClient, test_order, admin_token):
+    response = await client.get(
+        f"/api/v1/orders/{test_order.id}",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert response.status_code == 200
+    assert_order_response_data(response, test_order, OrderAdminResponse)
+
+
+async def test_get_order_details_unauthorized(client: AsyncClient, test_order):
+    response = await client.get(
+        f"/api/v1/orders/{test_order.id}",
+    )
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Not authenticated"
+
+
+async def test_get_order_details_not_found(client: AsyncClient, admin_token):
+    response = await client.get(
+        "/api/v1/orders/999",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert response.status_code == 400
+    assert "999" in response.json()["detail"]
+
+
+async def test_get_my_orders_empty(client: AsyncClient, user_token):
+    response = await client.get(
+        "/api/v1/orders/me",
+        headers={"Authorization": f"Bearer {user_token}"},
+    )
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["total"] == 0
+    assert data["items"] == []
+
+
+async def test_get_my_orders_success(client: AsyncClient, test_order):
+    owner_token = create_access_token(data={"id": test_order.user_id})
+    response = await client.get(
+        "/api/v1/orders/me",
+        headers={"Authorization": f"Bearer {owner_token}"},
+    )
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["total"] == 1
+    assert data["limit"] == 100
+    assert data["offset"] == 0
+    assert len(data["items"]) == 1
+
+
+async def test_get_my_orders_paginated(client: AsyncClient, user_token):
+    response = await client.get(
+        "/api/v1/orders/me?limit=50&offset=2",
+        headers={"Authorization": f"Bearer {user_token}"},
+    )
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["limit"] == 50
+    assert data["offset"] == 2
+
+
+async def test_get_my_orders_unauthorized(client: AsyncClient):
+    response = await client.get(
+        "/api/v1/orders/me",
+    )
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Not authenticated"
+
+
+async def test_get_orders_empty(client: AsyncClient, admin_token):
+    response = await client.get(
+        "/api/v1/orders",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["total"] == 0
+    assert data["items"] == []
+
+
+async def test_get_orders_success(client: AsyncClient, test_order, admin_token):
+    response = await client.get(
+        "/api/v1/orders",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["total"] == 1
+    assert data["limit"] == 100
+    assert data["offset"] == 0
+    assert len(data["items"]) == 1
+
+
+async def test_get_orders_paginated(client: AsyncClient, admin_token):
+    response = await client.get(
+        "/api/v1/orders?limit=50&offset=2",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["limit"] == 50
+    assert data["offset"] == 2
+
+
+async def test_get_orders_filtered_empty(client: AsyncClient, admin_token):
+    response = await client.get(
+        "/api/v1/orders?priority__gt=10",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert response.status_code == 200
+    assert response.json()["items"] == []
+
+
+@mark.parametrize("filter_key", ["user_id", "delivery_type", "status"])
+async def test_get_orders_filtered(
+    client: AsyncClient, test_order, admin_token, filter_key
+):
+    response = await client.get(
+        f"/api/v1/orders?{filter_key}={getattr(test_order, filter_key)}",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert response.status_code == 200
+    assert response.json()["total"] == 1
+
+
+async def test_get_orders_unauthorized(client: AsyncClient):
+    response = await client.get(
+        "/api/v1/orders",
+    )
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Not authenticated"
+
+
+async def test_create_order_success(
+    client: AsyncClient, test_book, test_other_book, test_user
+):
+    user_token = create_access_token(data={"id": test_user.id})
+    items = [
+        {"book_id": test_book.id, "quantity": 10},
+        {"book_id": test_other_book.id, "quantity": 4},
+    ]
+    order = {"items": items, "note": "very important"}
+    initial_stock_qty_book_1 = test_book.stock_quantity
+    initial_stock_qty_book_2 = test_other_book.stock_quantity
+
+    response = await client.post(
+        "/api/v1/orders",
+        json=order,
+        headers={"Authorization": f"Bearer {user_token}"},
+    )
+    assert response.status_code == 201
+
+    data = response.json()
+    assert data["items"] == items
+    assert data["status"] == OrderStatus.PENDING
+    assert data["delivery_type"] == DeliveryType.STANDARD
+    assert Decimal(data["total_amount"]) == Decimal(
+        test_book.price * items[0]["quantity"]
+        + test_other_book.price * items[1]["quantity"]
+    )
+    assert data["note"] == order["note"]
+    assert test_book.stock_quantity == initial_stock_qty_book_1 - items[0]["quantity"]
+    assert test_other_book.stock_quantity == initial_stock_qty_book_2 - items[1]["quantity"]
+
+
+async def test_create_order_unauthorized(client: AsyncClient, test_book):
+    response = await client.post(
+        "/api/v1/orders",
+        json={"book_id": test_book.id, "quantity": 1, "note": "very important"},
+    )
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Not authenticated"
+
+
+async def test_create_order_not_existed_book(client: AsyncClient, user_token):
+    order = {
+        "items": [
+            {"book_id": 999, "quantity": 5},
+        ],
+        "note": "very important",
+    }
+    response = await client.post(
+        "/api/v1/orders",
+        json=order,
+        headers={"Authorization": f"Bearer {user_token}"},
+    )
+    assert response.status_code == 400
+    assert str(order["items"][0]["book_id"]) in response.json()["detail"]
+
+
+async def test_order_create_zero_stock_quantity(
+    client: AsyncClient, user_token, test_book_zero_stock_qty
+):
+    response = await client.post(
+        "/api/v1/orders",
+        json={
+            "items": [
+                {"book_id": test_book_zero_stock_qty.id, "quantity": 5},
+            ]
+        },
+        headers={"Authorization": f"Bearer {user_token}"},
+    )
+    assert response.status_code == 400
+    assert str(test_book_zero_stock_qty.id) in response.json()["detail"]
+
+
+@mark.parametrize(
+    ["field_name", "value"],
+    [("quantity", 0), ("quantity", -10), ("delivery_type", "test")],
+)
+async def test_create_order_invalid_data(
+    client: AsyncClient, test_book, user_token, field_name, value
+):
+    response = await client.post(
+        "/api/v1/orders",
+        json={"book_id": test_book.id, field_name: value},
+        headers={"Authorization": f"Bearer {user_token}"},
+    )
+    assert response.status_code == 422
+
+
+async def test_update_order_success(client: AsyncClient, test_order, admin_token):
+    order_update = {
+        "status": OrderStatus.PAID,
+    }
+
+    response = await client.patch(
+        f"/api/v1/orders/{test_order.id}",
+        json=order_update,
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["status"] == order_update["status"]
+
+
+async def test_update_order_unauthorized(client: AsyncClient, test_order):
+    response = await client.patch(
+        f"/api/v1/orders/{test_order.id}",
+        json={"note": "new note"},
+    )
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Not authenticated"
+
+
+async def test_update_order_forbidden(client: AsyncClient, test_order, user_token):
+    response = await client.patch(
+        f"/api/v1/orders/{test_order.id}",
+        json={"note": "new note"},
+        headers={"Authorization": f"Bearer {user_token}"},
+    )
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Permission denied"
+
+
+@mark.parametrize("status", ["test", 123])
+async def test_update_order_invalid_status(
+    client: AsyncClient, test_order, admin_token, status
+):
+    response = await client.patch(
+        f"/api/v1/orders/{test_order.id}",
+        json={"status": status},
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert response.status_code == 422
+
+
+async def test_update_order_not_found(client: AsyncClient, admin_token):
+    response = await client.patch(
+        "/api/v1/orders/999",
+        json={"status": OrderStatus.SHIPPED},
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert response.status_code == 400
+    assert "999" in response.json()["detail"]
+
+
+async def test_delete_order_success(client: AsyncClient, test_order, admin_token):
+    response = await client.delete(
+        f"/api/v1/orders/{test_order.id}",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert response.status_code == 204
+
+    response = await client.get(
+        f"/api/v1/orders/{test_order.id}",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert response.status_code == 400
+    assert str(test_order.id) in response.json()["detail"]
+
+
+async def test_delete_order_unauthorized(client: AsyncClient, test_order):
+    response = await client.delete(f"/api/v1/orders/{test_order.id}")
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Not authenticated"
+
+
+async def test_delete_order_forbidden(client: AsyncClient, test_order, user_token):
+    response = await client.delete(
+        f"/api/v1/orders/{test_order.id}",
+        headers={"Authorization": f"Bearer {user_token}"},
+    )
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Permission denied"
+
+
+async def test_delete_order_not_found(client: AsyncClient, admin_token):
+    response = await client.delete(
+        "/api/v1/orders/999",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert response.status_code == 400
+    assert "999" in response.json()["detail"]
+
+
+async def test_order_export_xlsx_success(client: AsyncClient, mocker, test_order, admin_token):
+    spy_remove_temp_file = mocker.spy(orders_router, "remove_temp_file")
+
+    response = await client.get(
+        "/api/v1/orders/export/xlsx", headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    assert 'attachment; filename="Orders_report_' in response.headers["content-disposition"]
+
+    spy_remove_temp_file.assert_called_once()
+    temp_file_path = spy_remove_temp_file.call_args.args[0]
+    assert os.path.exists(temp_file_path) is False
+
+    file = BytesIO(response.content)
+    wb = load_workbook(file)
+    ws = wb.active
+
+    expected_columns = list(Order.__table__.columns.keys())
+    for col in range(len(expected_columns)):
+        assert ws.cell(row=1, column=col + 1).value == expected_columns[col]
+
+        if expected_columns[col] == "items":
+            expected_items = []
+            for item in test_order.items:
+                expected_items.append(f"book_id: {item['book_id']}, quantity: {item['quantity']}")
+            expected_cell = "\n".join(expected_items)
+            assert ws.cell(row=2, column=col + 1).value == expected_cell
+            continue
+
+        if expected_columns[col] == "created_at":
+            assert ws.cell(row=2, column=col + 1).value == test_order.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            continue
+
+        assert ws.cell(row=2, column=col + 1).value == getattr(test_order, expected_columns[col])
+
+
+async def test_order_export_xlsx_empty(client: AsyncClient, admin_token):
+    response = await client.get(
+        "/api/v1/orders/export/xlsx", headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 200
+
+    file = BytesIO(response.content)
+    wb = load_workbook(file)
+    ws = wb.active
+
+    assert ws.max_row == 1
+
+
+async def test_order_export_xlsx_paginated(client: AsyncClient, admin_token, test_order, mocker):
+    spy_get_orders_stream = mocker.spy(crud, "get_orders_stream")
+
+    response = await client.get(
+        "/api/v1/orders/export/xlsx?limit=10&offset=2", headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 200
+
+    called_kwargs = spy_get_orders_stream.call_args.kwargs
+    assert called_kwargs["limit"] == 10
+    assert called_kwargs["offset"] == 2
+
+    file = BytesIO(response.content)
+    wb = load_workbook(file)
+    ws = wb.active
+
+    assert ws.max_row == 1
+
+
+async def test_order_export_xlsx_not_authenticated(client: AsyncClient,):
+    response = await client.get(
+        "/api/v1/orders/export/xlsx"
+    )
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Not authenticated"
+
+
+async def test_order_export_xlsx_forbidden(client: AsyncClient, user_token):
+    response = await client.get(
+        "/api/v1/orders/export/xlsx", headers={"Authorization": f"Bearer {user_token}"}
+    )
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Permission denied"
