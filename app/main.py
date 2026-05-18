@@ -6,6 +6,7 @@ from fastapi import FastAPI, Response, Request
 from fastapi.responses import JSONResponse
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
+from sqlalchemy.exc import SQLAlchemyError
 import redis.asyncio as redis
 
 from app.routers.v1.users import router as users_router
@@ -32,6 +33,7 @@ from app.handlers.exceptions import (
     entity_not_found_handler,
     author_is_not_adult,
     invalid_token_handler,
+sql_alchemy_error_handler
 )
 import app.handlers.cache
 import app.config.logging
@@ -91,6 +93,7 @@ app.add_exception_handler(
 app.add_exception_handler(EntityNotFoundError, entity_not_found_handler)
 app.add_exception_handler(AuthorIsNotAdultError, author_is_not_adult)
 app.add_exception_handler(InvalidTokenError, invalid_token_handler)
+app.add_exception_handler(SQLAlchemyError, sql_alchemy_error_handler)
 
 
 @app.middleware("http")

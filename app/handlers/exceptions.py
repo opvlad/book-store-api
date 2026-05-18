@@ -2,6 +2,7 @@ import logging
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.exceptions import (
     UnauthorizedError,
@@ -48,3 +49,8 @@ async def invalid_token_handler(request: Request, exc: InvalidTokenError):
     logger.warning(f"TOKEN_INVALID | {request.method} {request.url.path} | ip={request.client.host} | error="
                    f"{exc.detail}")
     return JSONResponse(status_code=401, content={"detail": str(exc)})
+
+
+async def sql_alchemy_error_handler(request: Request, exc: SQLAlchemyError):
+    logger.error(f"DB_ERROR | error={type(exc).__name__}", exc_info=True)
+    return JSONResponse(status_code=500, content={"detail": "Internal Server Error"})

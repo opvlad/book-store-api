@@ -18,7 +18,7 @@ devrunserver:
 	@$(MAKE) start-redis
 	@trap '$(MAKE) stop-redis' EXIT; \
 	trap 'exit 0' INT; \
-	$(BIN)/uvicorn app.main:app --host localhost --port 8000 --reload
+	$(BIN)/uvicorn app.main:app --host localhost --port 8000 --reload --no-access-log
 
 test:
 	@$(BIN)/pytest -v
