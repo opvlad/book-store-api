@@ -1,6 +1,5 @@
 # Book Store API
 
----
 
 A RESTful API built with **FastAPI** and **PostgreSQL** for managing a bookstore's operations. 
 This system handles secure JWT-based user authentication, inventory management (books and authors), 
