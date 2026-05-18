@@ -3,22 +3,23 @@ BIN := .venv/bin
 
 MAKEFLAGS += --no-print-directory
 
+
 start-redis:
-	@redis-server --daemonize yes; \
-	echo "REDIS IS STARTED"
+	@docker run --name redis-bookstore --rm -d -p 6379:6379 redis:7-alpine > /dev/null
+	@echo "REDIS IS STARTED"
 
 stop-redis:
-	@redis-cli shutdown; \
-	echo "REDIS IS STOPPED"
+	@docker container stop redis-bookstore > /dev/null 2>&1 || true
+	@echo "REDIS IS STOPPED"
 
 runserver:
-	@$(BIN)/uvicorn app.main:app --host localhost --port 8000
-
-devrunserver:
-	@$(MAKE) start-redis
-	@trap '$(MAKE) stop-redis' EXIT; \
-	trap 'exit 0' INT; \
 	$(BIN)/uvicorn app.main:app --host localhost --port 8000 --reload --no-access-log
+
+fullrunserver:
+	@$(MAKE) start-redis
+	@trap '$(MAKE) stop-redis; trap - EXIT' EXIT INT TERM; \
+	$(BIN)/uvicorn app.main:app --host localhost --port 8000 --reload --no-access-log
+
 
 test:
 	@$(BIN)/pytest -v
