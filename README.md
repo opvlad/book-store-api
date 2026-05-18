@@ -8,7 +8,6 @@ and comprehensive order processing with role-based access control (Admin and Use
 
 ## Key Features
 
----
 
 - **User Authentication & Authorization:** Secure login and registration using JWT with distinct roles (`admin`, `user`).
 - **Inventory Management:** Full CRUD operations for Books and Authors.
@@ -23,7 +22,6 @@ and comprehensive order processing with role-based access control (Admin and Use
 
 ## Live Demo
 
----
 
 **Base URL:** https://opvlad.dev
 
@@ -34,7 +32,6 @@ Try the API immediately:
 
 ## Architecture
 
----
 
 ### Technology Stack
 
@@ -77,7 +74,6 @@ book-store-api/
 
 ## Quick Start
 
----
 
 ### Option 1: Docker (recommended)
 #### Prerequisites:
@@ -129,7 +125,6 @@ uvicorn app.main:app --host localhost --port 8000
 
 ## API Endpoints
 
----
 
 ### Authentication
 | Method | Endpoint             | Description        | Access |
@@ -180,7 +175,6 @@ uvicorn app.main:app --host localhost --port 8000
 
 ## Usage Example
 
----
 
 ### Registration
 
@@ -227,7 +221,6 @@ curl -X POST "http://localhost:8000/api/v1/orders" \
 
 ## Testing
 
----
 
 ```bash
 # run all tests
@@ -241,7 +234,6 @@ pytest -v tests/test_books.py
 
 ## Environment Variables
 
----
 
 | Variable                    | Description              | Default                                                         |
 |-----------------------------|--------------------------|-----------------------------------------------------------------|
@@ -254,7 +246,6 @@ pytest -v tests/test_books.py
 
 ## Migrations
 
----
 
 ```bash
 # create new migration
