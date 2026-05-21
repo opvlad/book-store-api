@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [ "develop" ]
+  pull_request:
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Setup uv
+      uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
+      with:
+        version: "0.10.12"
+        enable-cache: true
+
+    - name: Install dependencies
+      run: uv sync
+
+    - name: Run linter
+      run: ruff check --output-format=github .
+
+    - name: Run formatter
+      run: ruff format --check .
+
+    - name: Run pytest
+      run: uv run pytest
