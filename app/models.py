@@ -2,7 +2,17 @@ from enum import StrEnum
 from decimal import Decimal
 from datetime import date, datetime, UTC
 
-from sqlalchemy import String, Text, Identity, ForeignKey, Numeric, DateTime, func, Enum, JSON
+from sqlalchemy import (
+    String,
+    Text,
+    Identity,
+    ForeignKey,
+    Numeric,
+    DateTime,
+    func,
+    Enum,
+    JSON,
+)
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 
 from app.database import Base

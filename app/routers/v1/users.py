@@ -1,7 +1,12 @@
 from fastapi import APIRouter, Depends
 
 from app.dependencies import sessionDep, get_current_user, get_current_admin
-from app.schemas import UserResponse, UserListPaginatedResponse, UserUpdate, UserUpdateAsAdmin
+from app.schemas import (
+    UserResponse,
+    UserListPaginatedResponse,
+    UserUpdate,
+    UserUpdateAsAdmin,
+)
 from app.models import User
 from app.services import (
     get_user as service_get_user,

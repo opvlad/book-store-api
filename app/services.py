@@ -45,9 +45,12 @@ logger = logging.getLogger(__name__)
 async def get_user(db: AsyncSession, user_id: int, requester: User) -> User | None:
     user = await crud.get_user_by_id(db, user_id)
     if not user:
-        logger.warning(f"USER_NOT_FOUND | requester_id={requester.id} | user_id={user_id}")
+        logger.warning(
+            f"USER_NOT_FOUND | requester_id={requester.id} | user_id={user_id}"
+        )
         raise EntityNotFoundError(entity_name="User", entity_ids=user_id)
     return user
+
 
 async def get_users(
     db: AsyncSession, offset: int, limit: int
@@ -83,7 +86,9 @@ async def update_user(
 ) -> User:
     existing_user = await crud.get_user_by_id(db, user_id)
     if not existing_user:
-        logger.warning(f"USER_UPDATE_NOT_FOUND | requester_id={requester.id} | user_id={user_id}")
+        logger.warning(
+            f"USER_UPDATE_NOT_FOUND | requester_id={requester.id} | user_id={user_id}"
+        )
         raise EntityNotFoundError(entity_name="User", entity_ids=user_id)
 
     updated_data = user.model_dump(exclude_unset=True)
@@ -111,11 +116,11 @@ async def update_user(
     return user_updated
 
 
-async def delete_user(
-    db: AsyncSession, user_id: int, requester: User
-) -> None:
+async def delete_user(db: AsyncSession, user_id: int, requester: User) -> None:
     if not await crud.get_user_by_id(db, user_id):
-        logger.warning(f"USER_DELETE_NOT_FOUND | requester_id={requester.id} | user_id={user_id}")
+        logger.warning(
+            f"USER_DELETE_NOT_FOUND | requester_id={requester.id} | user_id={user_id}"
+        )
         raise EntityNotFoundError(entity_name="User", entity_ids=user_id)
 
     await crud.delete_user(db, user_id)
@@ -169,7 +174,9 @@ async def create_author(
     db: AsyncSession, author: AuthorCreate, requester: User
 ) -> Author:
     if not is_adult(author.birth_date):
-        logger.warning(f"AUTHOR_CREATE_UNDERAGE | requester_id={requester.id} | birth_date={author.birth_date}")
+        logger.warning(
+            f"AUTHOR_CREATE_UNDERAGE | requester_id={requester.id} | birth_date={author.birth_date}"
+        )
         raise AuthorIsNotAdultError()
 
     author_created = await crud.create_author(db, author)
@@ -184,11 +191,15 @@ async def update_author(
 ) -> Author:
     existing_author = await crud.get_author_by_id(db, author_id)
     if not existing_author:
-        logger.warning(f"AUTHOR_UPDATE_NOT_FOUND | requester_id={requester.id} | author_id={author_id}")
+        logger.warning(
+            f"AUTHOR_UPDATE_NOT_FOUND | requester_id={requester.id} | author_id={author_id}"
+        )
         raise EntityNotFoundError(entity_name="Author", entity_ids=author_id)
 
     if author.birth_date and not is_adult(author.birth_date):
-        logger.warning(f"AUTHOR_UPDATE_UNDERAGE | requester_id={requester.id} | birth_date={author.birth_date}")
+        logger.warning(
+            f"AUTHOR_UPDATE_UNDERAGE | requester_id={requester.id} | birth_date={author.birth_date}"
+        )
         raise AuthorIsNotAdultError()
 
     author_updated = await crud.update_author(db, author_id, author)
@@ -202,7 +213,9 @@ async def update_author(
 async def delete_author(db: AsyncSession, author_id: int, requester: User) -> None:
     existing_author = await crud.get_author_by_id(db, author_id)
     if not existing_author:
-        logger.warning(f"AUTHOR_DELETE_NOT_FOUND | requester_id={requester.id} | author_id={author_id}")
+        logger.warning(
+            f"AUTHOR_DELETE_NOT_FOUND | requester_id={requester.id} | author_id={author_id}"
+        )
         raise EntityNotFoundError(entity_name="Author", entity_ids=author_id)
 
     await crud.delete_author(db, author_id)
@@ -229,7 +242,9 @@ async def get_books(
 async def create_book(db: AsyncSession, book: BookCreate, requester: User) -> Book:
     existing_author = await crud.get_author_by_id(db, book.author_id)
     if not existing_author:
-        logger.warning(f"BOOK_CREATE_AUTHOR_NOT_FOUND | requester_id={requester.id} | author_id={book.author_id}")
+        logger.warning(
+            f"BOOK_CREATE_AUTHOR_NOT_FOUND | requester_id={requester.id} | author_id={book.author_id}"
+        )
         raise EntityNotFoundError(entity_name="Author", entity_ids=book.author_id)
 
     book_created = await crud.create_book(db, book)
@@ -244,7 +259,9 @@ async def update_book(
 ) -> Book:
     existing_book = await crud.get_book_by_id(db, book_id)
     if not existing_book:
-        logger.warning(f"BOOK_UPDATE_NOT_FOUND | requester_id={requester.id} | book_id={book_id}")
+        logger.warning(
+            f"BOOK_UPDATE_NOT_FOUND | requester_id={requester.id} | book_id={book_id}"
+        )
         raise EntityNotFoundError(entity_name="Book", entity_ids=book_id)
 
     if book_update.author_id is not None:
@@ -253,7 +270,9 @@ async def update_book(
             logger.warning(
                 f"BOOK_UPDATE_AUTHOR_NOT_FOUND | requester_id={requester.id} | author_id={book_update.author_id}"
             )
-            raise EntityNotFoundError(entity_name="Author", entity_ids=book_update.author_id)
+            raise EntityNotFoundError(
+                entity_name="Author", entity_ids=book_update.author_id
+            )
 
     book_updated = await crud.update_book(db, book_id, book_update)
     logger.info(
@@ -265,7 +284,9 @@ async def update_book(
 async def delete_book(db: AsyncSession, book_id: int, requester: User) -> None:
     existing_book = await crud.get_book_by_id(db, book_id)
     if not existing_book:
-        logger.warning(f"BOOK_DELETE_NOT_FOUND | requester_id={requester.id} | book_id={book_id}")
+        logger.warning(
+            f"BOOK_DELETE_NOT_FOUND | requester_id={requester.id} | book_id={book_id}"
+        )
         raise EntityNotFoundError(entity_name="Book", entity_ids=book_id)
 
     await crud.delete_book(db, book_id)
@@ -306,7 +327,9 @@ async def get_order(db: AsyncSession, order_id: int, user: User) -> Order:
     order = await crud.get_order_by_id(db, order_id)
 
     if not order:
-        logger.warning(f"ORDER_NOT_FOUND | requester_id={user.id} | order_id={order_id}")
+        logger.warning(
+            f"ORDER_NOT_FOUND | requester_id={user.id} | order_id={order_id}"
+        )
         raise EntityNotFoundError(entity_name="Order", entity_ids=order_id)
 
     if order.user_id != user.id and user.role != UserRole.ADMIN:
@@ -361,7 +384,9 @@ async def create_order(db: AsyncSession, order: OrderCreate, user: User) -> Orde
 
     for book in books:
         new_stock_quantity = book.stock_quantity - items_map[book.id]
-        await crud.update_book(db, book.id, BookUpdate(stock_quantity=new_stock_quantity))
+        await crud.update_book(
+            db, book.id, BookUpdate(stock_quantity=new_stock_quantity)
+        )
 
     total_amount = Decimal(
         sum([items_map[book_id] * book.price for book_id, book in books_map.items()])
@@ -405,7 +430,9 @@ async def update_order(
 async def delete_order(db: AsyncSession, order_id: int, requester: User) -> None:
     order = await crud.get_order_by_id(db, order_id)
     if not order:
-        logger.warning(f"ORDER_DELETE_NOT_FOUND | requester_id={requester.id} | order_id={order_id}")
+        logger.warning(
+            f"ORDER_DELETE_NOT_FOUND | requester_id={requester.id} | order_id={order_id}"
+        )
         raise EntityNotFoundError(entity_name="Order", entity_ids=order_id)
 
     await crud.delete_order(db, order_id)

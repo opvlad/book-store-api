@@ -46,8 +46,10 @@ async def author_is_not_adult(request: Request, exc: AuthorIsNotAdultError):
 
 
 async def invalid_token_handler(request: Request, exc: InvalidTokenError):
-    logger.warning(f"TOKEN_INVALID | {request.method} {request.url.path} | ip={request.client.host} | error="
-                   f"{exc.detail}")
+    logger.warning(
+        f"TOKEN_INVALID | {request.method} {request.url.path} | ip={request.client.host} | error="
+        f"{exc.detail}"
+    )
     return JSONResponse(status_code=401, content={"detail": str(exc)})
 
 

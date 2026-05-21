@@ -209,7 +209,9 @@ async def test_user_update_not_found(client: AsyncClient, admin_token):
 
 
 @mark.parametrize("user_status", ["123", "not", None])
-async def test_update_user_invalid_data(client: AsyncClient, test_user, admin_token, user_status):
+async def test_update_user_invalid_data(
+    client: AsyncClient, test_user, admin_token, user_status
+):
     response = await client.patch(
         f"/api/v1/users/{test_user.id}",
         json={"status": user_status},

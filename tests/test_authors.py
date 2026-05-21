@@ -18,9 +18,7 @@ async def test_list_authors_cache_success(client, mocker):
     assert mock_get_list_authors.call_count == 1
 
 
-async def test_list_authors_cache_invalidation(
-    client, mocker, admin_token
-):
+async def test_list_authors_cache_invalidation(client, mocker, admin_token):
     mock_get_list_authors = mocker.spy(authors_router, "service_get_authors")
 
     async def _get_response(call_count: int) -> Response:
