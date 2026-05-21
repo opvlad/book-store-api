@@ -1,0 +1,23 @@
+name: Python application
+
+on:
+  push:
+    branches: [ "develop" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-24.04
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.12"
+    - name: Setup uv
+      uses: yezz123/setup-uv@v4
+    - name: Install dependencies
+      run: uv sync
+    - name: Test with pytest
+      run: uv run pytest -v
