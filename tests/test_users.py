@@ -35,6 +35,7 @@ async def test_user_read_me_invalid_token_payload(client: AsyncClient):
     )
     assert response.status_code == 401
     assert response.json()["detail"] == "Invalid token"
+    assert False
 
 
 async def test_user_read_me_not_found(client: AsyncClient):
