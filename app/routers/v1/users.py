@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends
 
 from app.dependencies import sessionDep, get_current_user, get_current_admin
 from app.schemas import UserResponse, UserListPaginatedResponse, UserUpdate, UserUpdateAsAdmin
@@ -31,7 +31,7 @@ async def list_users(
     db: sessionDep,
     offset: int = 0,
     limit: int = 100,
-    admin: User = Depends(get_current_admin),
+    _: User = Depends(get_current_admin),
 ):
     total, items = await service_get_users(db, offset=offset, limit=limit)
     return {"total": total, "limit": limit, "offset": offset, "items": items}

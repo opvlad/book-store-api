@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends
-from fastapi_cache import FastAPICache
 from fastapi_cache.decorator import cache
 
 from app.dependencies import sessionDep, get_current_admin

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
 from app.dependencies import sessionDep
 from app.schemas import LoginForm, UserResponse, UserCreate, Token

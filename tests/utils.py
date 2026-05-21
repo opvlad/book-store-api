@@ -1,7 +1,5 @@
 from typing import TypeAlias
 
-from httpx import Response
-
 from app.models import Order, Book, User, Author
 from app.schemas import OrderResponse, OrderAdminResponse, BookResponse, UserResponse, AuthorResponse
 
