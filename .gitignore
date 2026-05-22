@@ -35,3 +35,5 @@ venv/
 
 # Ruff stuff:
 .ruff_cache/
+
+.claude
