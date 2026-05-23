@@ -90,9 +90,9 @@ cp .env.example .env
 # start containers
 docker compose up --build
 ```
-API will be available at: http://localhost:8000
+API will be available at: http://localhost:8080
 
-Swagger UI: http://localhost:8000/docs
+Swagger UI: http://localhost:8080/docs
 
 
 ### Option 2: Local Setup
