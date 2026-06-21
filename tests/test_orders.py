@@ -228,7 +228,10 @@ async def test_create_order_success(
     )
     assert data["note"] == order["note"]
     assert test_book.stock_quantity == initial_stock_qty_book_1 - items[0]["quantity"]
-    assert test_other_book.stock_quantity == initial_stock_qty_book_2 - items[1]["quantity"]
+    assert (
+        test_other_book.stock_quantity
+        == initial_stock_qty_book_2 - items[1]["quantity"]
+    )
 
 
 async def test_create_order_unauthorized(client: AsyncClient, test_book):
@@ -383,15 +386,23 @@ async def test_delete_order_not_found(client: AsyncClient, admin_token):
     assert "999" in response.json()["detail"]
 
 
-async def test_order_export_xlsx_success(client: AsyncClient, mocker, test_order, admin_token):
+async def test_order_export_xlsx_success(
+    client: AsyncClient, mocker, test_order, admin_token
+):
     spy_remove_temp_file = mocker.spy(orders_router, "remove_temp_file")
 
     response = await client.get(
         "/api/v1/orders/export/xlsx", headers={"Authorization": f"Bearer {admin_token}"}
     )
     assert response.status_code == 200
-    assert response.headers["content-type"] == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    assert 'attachment; filename="Orders_report_' in response.headers["content-disposition"]
+    assert (
+        response.headers["content-type"]
+        == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    assert (
+        'attachment; filename="Orders_report_'
+        in response.headers["content-disposition"]
+    )
 
     spy_remove_temp_file.assert_called_once()
     temp_file_path = spy_remove_temp_file.call_args.args[0]
@@ -408,16 +419,22 @@ async def test_order_export_xlsx_success(client: AsyncClient, mocker, test_order
         if expected_columns[col] == "items":
             expected_items = []
             for item in test_order.items:
-                expected_items.append(f"book_id: {item['book_id']}, quantity: {item['quantity']}")
+                expected_items.append(
+                    f"book_id: {item['book_id']}, quantity: {item['quantity']}"
+                )
             expected_cell = "\n".join(expected_items)
             assert ws.cell(row=2, column=col + 1).value == expected_cell
             continue
 
         if expected_columns[col] == "created_at":
-            assert ws.cell(row=2, column=col + 1).value == test_order.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            assert ws.cell(
+                row=2, column=col + 1
+            ).value == test_order.created_at.strftime("%Y-%m-%d %H:%M:%S")
             continue
 
-        assert ws.cell(row=2, column=col + 1).value == getattr(test_order, expected_columns[col])
+        assert ws.cell(row=2, column=col + 1).value == getattr(
+            test_order, expected_columns[col]
+        )
 
 
 async def test_order_export_xlsx_empty(client: AsyncClient, admin_token):
@@ -433,11 +450,14 @@ async def test_order_export_xlsx_empty(client: AsyncClient, admin_token):
     assert ws.max_row == 1
 
 
-async def test_order_export_xlsx_paginated(client: AsyncClient, admin_token, test_order, mocker):
+async def test_order_export_xlsx_paginated(
+    client: AsyncClient, admin_token, test_order, mocker
+):
     spy_get_orders_stream = mocker.spy(crud, "get_orders_stream")
 
     response = await client.get(
-        "/api/v1/orders/export/xlsx?limit=10&offset=2", headers={"Authorization": f"Bearer {admin_token}"}
+        "/api/v1/orders/export/xlsx?limit=10&offset=2",
+        headers={"Authorization": f"Bearer {admin_token}"},
     )
     assert response.status_code == 200
 
@@ -452,10 +472,10 @@ async def test_order_export_xlsx_paginated(client: AsyncClient, admin_token, tes
     assert ws.max_row == 1
 
 
-async def test_order_export_xlsx_not_authenticated(client: AsyncClient,):
-    response = await client.get(
-        "/api/v1/orders/export/xlsx"
-    )
+async def test_order_export_xlsx_not_authenticated(
+    client: AsyncClient,
+):
+    response = await client.get("/api/v1/orders/export/xlsx")
     assert response.status_code == 401
     assert response.json()["detail"] == "Not authenticated"
 

@@ -33,7 +33,7 @@ from app.handlers.exceptions import (
     entity_not_found_handler,
     author_is_not_adult,
     invalid_token_handler,
-sql_alchemy_error_handler
+    sql_alchemy_error_handler,
 )
 import app.handlers.cache
 import app.config.logging
@@ -106,7 +106,9 @@ async def log_request(request: Request, call_next):
             f"UNHANDLED_ERROR | {request.method} {request.url.path} | ip={request.client.host} | error={e}",
             exc_info=True,
         )
-        return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+        return JSONResponse(
+            status_code=500, content={"detail": "Internal server error"}
+        )
     process_time = perf_counter() - start_time
     logger.info(
         f"{request.method} {request.url.path} | {response.status_code} | ip={request.client.host} pt="

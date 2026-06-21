@@ -1,10 +1,15 @@
 from app.event_bus import EventBus
 
 
-
 async def test_unhandled_exception_handled(client, mocker, admin_token, test_user):
-    mocker.patch("app.routers.v1.users.service_get_user", side_effect=Exception("test-unexpected"))
-    response = await client.get(f"/api/v1/users/{test_user.id}", headers={"Authorization": f"Bearer {admin_token}"})
+    mocker.patch(
+        "app.routers.v1.users.service_get_user",
+        side_effect=Exception("test-unexpected"),
+    )
+    response = await client.get(
+        f"/api/v1/users/{test_user.id}",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
 
     print(response.status_code, response.json())
 

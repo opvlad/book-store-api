@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends
-from fastapi_cache import FastAPICache
 from fastapi_cache.decorator import cache
 
 from app.dependencies import sessionDep, get_current_admin
@@ -52,7 +51,9 @@ async def modify_author(
     author_update: AuthorUpdate,
     admin: User = Depends(get_current_admin),
 ):
-    author_updated = await service_update_author(db, author_id, author_update, requester=admin)
+    author_updated = await service_update_author(
+        db, author_id, author_update, requester=admin
+    )
     await bus.emit("author.updated")
     return author_updated
 
