@@ -1,7 +1,9 @@
 from app.models import Order
 
 
-def get_base_message(template_name: str, user_name: str | None = None, order: Order | None = None) -> str | None:
+def get_base_message(
+    template_name: str, user_name: str | None = None, order: Order | None = None
+) -> str | None:
     match template_name:
         case "order_created":
             item_lines = []

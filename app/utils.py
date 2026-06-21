@@ -11,7 +11,9 @@ def remove_temp_file(path: str) -> None:
         os.remove(path)
 
 
-def send_email(subject: str, body: str, to: list | None = None, bcc: list | None = None) -> None:
+def send_email(
+    subject: str, body: str, to: list | None = None, bcc: list | None = None
+) -> None:
     params = {
         "from": "noreply@opvlad.dev",
         "to": to,
@@ -22,7 +24,7 @@ def send_email(subject: str, body: str, to: list | None = None, bcc: list | None
 
     try:
         email = resend.Emails.send(params)
-        logger.info(f"EMAIL_SENT | id={email["id"]}")
+        logger.info(f"EMAIL_SENT | id={email['id']}")
     except ResendError as e:
         logger.error(f"EMAIL_ERROR | {e}", exc_info=True)
         raise

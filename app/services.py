@@ -410,7 +410,9 @@ async def create_order(db: AsyncSession, order: OrderCreate, user: User) -> Orde
     order_created = await crud.create_order(db, order_create_in_db)
     logger.info(f"ORDER_CREATED | order_id={order_created.id}")
 
-    message = get_base_message("order_created", user_name=user.username, order=order_created)
+    message = get_base_message(
+        "order_created", user_name=user.username, order=order_created
+    )
     if message is not None:
         try:
             send_email(subject="Order is created", body=message, to=[user.email])
