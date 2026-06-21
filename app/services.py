@@ -6,11 +6,14 @@ from tempfile import mkstemp
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from openpyxl import Workbook
+from resend.exceptions import ResendError
 
 from app import crud
 from app.config.settings import priority_points
+from app.config.base_email_messages import get_base_message
 from app.models import User, Author, Book, Order, UserRole, OrderStatus
 from app.security import get_password_hash, verify_password, create_access_token
+from app.utils import send_email
 from app.schemas import (
     UserCreate,
     UserCreateInDB,
@@ -406,6 +409,18 @@ async def create_order(db: AsyncSession, order: OrderCreate, user: User) -> Orde
     )
     order_created = await crud.create_order(db, order_create_in_db)
     logger.info(f"ORDER_CREATED | order_id={order_created.id}")
+
+    message = get_base_message("order_created", user_name=user.username, order=order_created)
+    if message is not None:
+        try:
+            send_email(subject="Order is created", body=message, to=[user.email])
+        except ResendError:
+            pass
+        except Exception:
+            raise
+    else:
+        logger.warning("EMAIL_ERROR | message is None")
+
     return order_created
 
 

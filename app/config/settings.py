@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     secret_key: str = "dev-secret-key-change-this-later"
     access_token_expire_minutes: int = 30
     algorithm: str = "HS256"
+    resend_api_key: str = "resend-api-key"
 
 
 settings = Settings()

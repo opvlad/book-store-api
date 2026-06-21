@@ -8,6 +8,7 @@ from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from sqlalchemy.exc import SQLAlchemyError
 import redis.asyncio as redis
+import resend
 
 from app.routers.v1.users import router as users_router
 from app.routers.v1.auth import router as auth_router
@@ -68,6 +69,7 @@ async def lifespan(app: FastAPI):
         prefix="bookstore",
         key_builder=bookstore_key_builder,
     )
+    resend.api_key = settings.resend_api_key
     logger.info("application started")
     yield
     await redis_client.close()
