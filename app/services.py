@@ -416,8 +416,8 @@ async def create_order(db: AsyncSession, order: OrderCreate, user: User) -> Orde
     if message is not None:
         try:
             send_email(subject="Order is created", body=message, to=[user.email])
-        except ResendError:
-            pass
+        except ResendError as e:
+            logger.warning(f"EMAIL_ERROR | resend error | {e}", exc_info=True)
         except Exception:
             raise
     else:
