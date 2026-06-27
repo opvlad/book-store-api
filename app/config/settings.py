@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
     algorithm: str = "HS256"
     resend_api_key: str = "resend-api-key"
+    email_sender: str = "email@example.com"
 
 
 settings = Settings()
