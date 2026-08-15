@@ -412,13 +412,16 @@ async def create_order(db: AsyncSession, order: OrderCreate, user: User) -> Orde
     message = get_base_message(
         "order_created", user_name=user.username, order=order_created
     )
-    if message is not None:
-        task = send_email.delay(
-            subject="Order is created", body=message, to=[user.email]
-        )
-        logger.info(f"EMAIL_QUEUED | task_id={task.id}")
-    else:
+    if message is None:
         logger.warning("EMAIL_ERROR | message is None")
+    else:
+        try:
+            task = send_email.delay(
+                subject="Order is created", body=message, to=[user.email]
+            )
+            logger.info(f"EMAIL_QUEUED | task_id={task.id}")
+        except Exception as e:
+            logger.error(f"UNEXPECTED_ERROR | {e}", exc_info=True)
 
     return order_created
 

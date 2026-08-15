@@ -35,7 +35,5 @@ def send_email(
         logger.info(f"EMAIL_SENT | id={email['id']}")
     except ResendError as e:
         logger.error(f"EMAIL_ERROR | {e}", exc_info=True)
-        raise
-    except Exception as e:
-        logger.error(f"UNEXPECTED_ERROR | {e}", exc_info=True)
+    except Exception:
         raise
