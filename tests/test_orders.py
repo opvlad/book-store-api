@@ -200,11 +200,6 @@ async def test_get_orders_unauthorized(client: AsyncClient):
     assert response.json()["detail"] == "Not authenticated"
 
 
-"""
-  - What happens if email sending fails - does order still complete?
-"""
-
-
 async def test_create_order_success(
     client: AsyncClient, mocker: MockerFixture, test_book, test_other_book, user_token
 ):
