@@ -4,6 +4,7 @@ import os
 
 from httpx import AsyncClient, Response
 from pytest import mark
+from pytest_mock import MockerFixture
 from openpyxl import load_workbook
 
 import app.routers.v1.orders as orders_router
@@ -200,9 +201,8 @@ async def test_get_orders_unauthorized(client: AsyncClient):
 
 
 async def test_create_order_success(
-    client: AsyncClient, test_book, test_other_book, test_user
+    client: AsyncClient, mocker: MockerFixture, test_book, test_other_book, user_token
 ):
-    user_token = create_access_token(data={"id": test_user.id})
     items = [
         {"book_id": test_book.id, "quantity": 10},
         {"book_id": test_other_book.id, "quantity": 4},
@@ -210,6 +210,7 @@ async def test_create_order_success(
     order = {"items": items, "note": "very important"}
     initial_stock_qty_book_1 = test_book.stock_quantity
     initial_stock_qty_book_2 = test_other_book.stock_quantity
+    mock_send_email = mocker.patch("app.services.send_email.delay")
 
     response = await client.post(
         "/api/v1/orders",
@@ -232,6 +233,28 @@ async def test_create_order_success(
         test_other_book.stock_quantity
         == initial_stock_qty_book_2 - items[1]["quantity"]
     )
+    mock_send_email.assert_called_once()
+
+
+async def test_create_order_email_not_sent(
+    client: AsyncClient, mocker: MockerFixture, db_session, test_book, user_token
+):
+    order = {"items": [{"book_id": test_book.id, "quantity": 10}]}
+    mock_send_email = mocker.patch(
+        "app.services.send_email.delay", side_effect=Exception
+    )
+
+    response = await client.post(
+        "/api/v1/orders",
+        json=order,
+        headers={"Authorization": f"Bearer {user_token}"},
+    )
+    assert response.status_code == 201
+    mock_send_email.assert_called_once()
+
+    data = response.json()
+    order_created = await crud.get_order_by_id(db_session, data["id"])
+    assert order_created is not None
 
 
 async def test_create_order_unauthorized(client: AsyncClient, test_book):

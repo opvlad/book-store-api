@@ -11,8 +11,6 @@ async def test_unhandled_exception_handled(client, mocker, admin_token, test_use
         headers={"Authorization": f"Bearer {admin_token}"},
     )
 
-    print(response.status_code, response.json())
-
     assert response.status_code == 500
     assert response.json()["detail"] == "Internal server error"
 
